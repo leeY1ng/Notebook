@@ -1,0 +1,1555 @@
+一、初识express
+
+单页web程序 
+angular ember/开发
+
+多页和混合的web程序
+每个页面向服务器发送请求
+
+connect node的插件 创造了中间件‘插入式的node模块’
+在不同程度上处理web请求
+之前
+express绑定在connect上
+目前
+connect以及除static之外的所有中间件被去掉，这些中间件可以独立升级
+
+node：一种新型web服务器
+
+node是单线程 简化了web程序的编写
+只需启用更多的node实例，就可以得到多线程的性能优势
+
+npm中license-sniffer or license-spelunker确定项目中每一个依赖的授权
+gnu 通用公共授权
+使用gpl授权的代码，项目也必须是gpl授权，项目不能闭源
+apache2.0
+像mit一样 为自己的项目使用不同的授权，包括闭源授权，必须对使用apache2.0授权的组件作出声明
+bsd 伯克利软件分发
+与apache类似，允许为自己的项目使用任何授权，声明使用bsd授权的组件
+
+软件也可以双授权
+
+二、从node开始
+
+npm
+安装开发包和管理依赖项
+
+Hello World
+text/plain => text/html 可以写html字符串
+尽量避免在javascript里写html
+原因第7章
+
+事件驱动编程
+
+node核心理念 有哪些事件，如何响应这些事件
+事件是隐含的 http请求处理事件 http.createServer 将函数作为参数
+，每次收到请求就调用参数
+
+路由
+是指 客户端提供它所发出的请求内容的机制 对web客户端/服务器端程序而言，客户端在url中指明它想要的内容，具体来说就是路径和查询字符串
+
+通过在url中设置查询字符串来根据不同的结果获取不同的响应事件
+
+静态资源服务
+
+node提供静态资源只适用于初期的小型项目，对于大型项目，可以用nginx或cdn之类代理服务器来提供静态资源>16章
+
+打开html文件，读取其中内容，发送给浏览器，，要在项目中添加public目录
+
+fs.readFile()读取文件的异步方法 fs.readFileSync()同步方法
+
+_ _dirname会被解析正在执行脚本所在的目录，如果脚本放到/home/sites/app.js __dirname会被解析为/home/sites 什么时候全局变量都可以使用，如果不这么做，在不同的目录中运行程序很可能会出现难以诊断的错误
+
+走向express
+
+三、省时省力的express
+
+脚手架
+大多项目需要套路化代码，创建一个项目的通用骨架，每次开始新项目只需复制这个骨架，或者说是模板
+RoR可以自动生成脚手架程序，相对从模板中做出选择，这种方式的优点可以生成更复杂的框架
+express借鉴了这一做法 提供了一个生成脚手架的工具，从而可以开始一个新的express项目
+
+不用脚手架工具，了解是否有用
+
+html5 Boilerplate可以生产一个不错的空白HTML5网站  可定制 包含bootstrap
+
+旅行社网站
+
+很多脚手架生成器建议把主文件命名为app.js除非托管服务器部署系统对程序主文件有特定要求，倾向于按照项目命名主文件 npm init默认使用index.js 如果需要使用其他主文件名 需要修改package.json文件中main属性
+
+app.set("port", process.env.PORT || 3000)
+指定程序端口，可以在启动服务器前通过设置环境变量覆盖端口，如果在运行此案例时发现监听的不是3000 检查是否设置了环境变量PORT
+
+建议安装一个显示http请求状态码和所有重定向的浏览器插件
+for Chrome Redirect Path
+
+app.get()
+添加路由的方法 express中app.VERB 指http动词 get\post 
+有两个参数(路径，函数）
+路由就是由路径定义的，在进行匹配时不考虑查询字符串，忽略大小写
+路由匹配上后会调用函数，将请求和响应作为函数的参数=》第6章
+
+express 的扩展 res.end res.set and res.status instead of res.writeHead  
+res.type可以方便的设置响应头Content-Type，
+但res.writeHead和res.end有依然可以用（不推荐）
+
+对404和500页面使用app.use() 
+app.use()是添加中间件的方法=>第10章 目前可以看作没有路由匹配路径的处理器
+express中添加路由和中间件的顺序非常重要
+如果将404处理器放在路由上面 首页和关于页面就不能正常使用
+访问这些url都是404
+
+express可以根据回调函数中参数的个数区分404和500页面 错误路由
+第10、12章
+
+视图和布局
+模型-视图-控制器
+视图html 与静态资源的区别不一定是静态的，html可以动态构建，并为每个请求定制页面
+
+支持多种不同的视图引擎，有不同层次的抽象 比较偏好的jade
+jade将其转换成html
+
+handlebars 抽象程度较低
+
+视图引擎会默认返回text/html 内容和200类型码
+在catch-all处理器（提供定制的404页面）以及500处理器中，必须明确设定状态码
+
+
+视图和静态文件
+
+express靠中间件处理静态文件和视图，第10章详细介绍中间件
+中间件只是一种模块化手段，使得请求更加容易
+
+static中间件可以将一个或多个目录指派为包含静态资源的目录，
+其中的资源不经过任何特殊处理直接发送到客户端，可以在其中放css文件js文件之类
+
+app.use(express.static(__dirname+"/public"));
+相当于static给想要发送的文件创建了一个路由，渲染文件并发送给客户端
+
+视图中的动态内容
+视图并不只是一种传递静态html的复杂方式，视图真正强大之处在于可以包含动态信息
+
+模板非常有用=》第7章 
+
+
+四、工欲善其事，必先利其器
+
+最佳实践 
+练习的重点：版本控制和质量保证
+
+版本控制
+
+文档
+回溯项目历史，回顾开发决策和开发顺序，形成文档
+
+归属
+知道项目代码是谁做的修改
+
+试验
+可以引出分支，尝试做新东西，成则归于项目 暂不成则回溯项目
+
+（package-lock.json 
+当node_modules或package.json发生变化时自动生成的文件，这个文件主要是确定当前安装包的依赖，以便后续重新安装的时候生成相同的依赖，而忽略项目开发过程中有些依赖已经发生的更新
+修改了package.json 和lock文件不同，执行npm i时npm会根据package中版本号以及语义去下载最新的包并更新到lock中）
+
+git标签置于一种"分离的head"状态中，可以随意编辑任何文件，如果不创建分支，提交任何修改都是不安全的，要基于一个标签做试验性分支，创建一个新分支后检出：git checkout -b experiment(experiment分支名称)之后就可以在分支上随意编辑和提交
+
+npm包
+如果想对项目所依赖的包进行修改，应该创建这个项目的副本，如果项目符合标准，可以纳入到项目中，
+package.json双重作用，描述项目和列出项目依赖，
+版本号前 ^在下一个版本号之前，所有指定的版本号开始的版本都可以用，--save默认指定版本范围，如果想升级到新版本，只能编辑这个文件来指定新版本。一般来说这样可以防止依赖项的变化在不知情的情况下破坏项目，npm中版本号由semver语义版本器解析，
+
+package.json列出了所有依赖项，node_modules目录衍生品
+如果删除了，想让项目恢复工作，只需npm install 就会重建这个目录，并将所有必需依赖项全放进去
+建议把node_modules目录放进gitignore文件中，不要纳入源码的版本控制中去，
+也有人觉得需要包含项目需要的一切东西，
+作者推荐忽略它
+
+不管什么时候使用了node模块，要确保作为依赖项出现在package.json文件中，如果不能，npm将无法构建出恰当的依赖项，当其他开发人员检出项目时，将无法正确安装依赖项
+
+项目元数据
+package.json另一个作用是存放项目的元数据，项目作者名称，授权信息等
+用npm init来初始化创建package.json文件，会生成必需的域，然后可以随时修改他们，
+另一个元数据是README.md文件，适合描述网站的整体架构，适合存放刚接触项目需要了解的重要信息
+
+
+node模块
+是指模块化和封装的机制，
+npm包
+提供了存储，版本话和引用项目的标准范式
+
+例：
+var express = require("express");
+将express作为模块引入，require引入模块的node函数，node会默认在node_modules中搜索这些模块，
+node也提供创建自有模块的机制，（永远不要在node_modules中创建自有模块）
+
+将幸运饼干模块化
+
+先创建将模块保存的目录
+
+var fortuneCookies = [
+	"Conquer your fears or they will conquer you",
+	"Rivers need springs",
+	"Do not fear what you don't know",
+	"You will have a pleasant surprise",
+	"Whenever possible,keep it simple"
+];
+exports.getFortune = function(){
+	var idx = Math.floor(Math.random()*fortuneCookies.length);
+	return fortuneCookies[idx];
+};
+
+注意全局变量输出的用法，如果想让一个变量在模块外可见，必须将其加到exports上，模块外可以访问到getFortunr，但数组无法访问到
+好处：封装可以减少容易出错和比较脆弱的代码
+
+从模块输出功能的方法 第22章
+
+
+按照惯例，在文章顶部引入模块，
+
+在模块名称前加./ 
+告诉node 不应该到node_modules目录中查找这个模块，如果忽略这个前缀就会导致失败
+
+在关于页面路由中，利用以上模块的getFortune方法：
+
+模块封装功能可以改善项目总体设计和可维护性，还可以使测试更加容易
+
+
+五、质量保证
+
+
+具备QA开发技能
+
+值得QA？
+web开发中 质量分为四个维度：
+
+到达率：
+产品的市场普及程度
+对开发来说SEO对于到达率的影响最大
+
+功能：
+用户对产品的依赖取决于产品的功能质量
+
+可用性：
+QA方案中要包含用户测试
+
+审美：
+网站的常规性审美
+
+
+功能测试和SEO在开发过程中可以自动完成
+
+
+逻辑与展示
+
+网站有两个领域:
+逻辑:业务逻辑 js模块对逻辑的封装
+表示：	      将html css 多媒体js jquery之类前端库的结合
+
+测试的类型
+单元测试：粒度较细 对每个组件进行测试确保功能正确
+集成测试：对多个组件甚至整个系统之间的交互进行测试
+
+单元测试主要测试逻辑、集成测试在两个领域中都有用
+
+
+QA技术概览
+
+页面测试：测试页面表示和前端功能 
+mocha
+
+跨页测试
+从一个页面转到另一个页面的功能测试
+例如结账功能，涉及多个组件，被当作集成测试
+zombie.js
+
+逻辑测试
+对逻辑域进行单元和集成测试，只测试js，跟表示功能分开
+
+去毛
+寻找潜在错误，找出可能有错误区域，或可能在将来会发生错误的问题代码
+JSHint
+
+链接检查
+检查是否破损的链接
+属于单元测试
+LinkChecker
+
+
+运行你的服务器
+
+监控工具 js被修改后自动重启服务器
+nodemon （也有grunt插件）
+
+页面测试
+把测试嵌入页面中
+优点:在做页面时，浏览器中一加载页面就可以发现所有错误
+
+--save-dev 而不用--save 
+将包放在开发依赖中，不要放在运行依赖中，
+在部署现场实例时，可以减少项目依赖项
+mocha要在浏览器中运行，要把mocha资源放在public目录下，让客户端访问到，将这些资源放在子目录public/vendor
+
+将用到的第三方库放到特殊的目录中，例如vendor
+可以分清哪些是你负责需要测试和修改的，哪些代码不应该动
+
+测试需要assert（expect）函数，node中有，但浏览器中没有
+所以要用chai断言库
+
+现在可以测试，但不希望测试一直运行，拖慢网站速度，用户也不用看到测试结果
+默认情况下测试应该禁用，但非常容易启用，
+准备用url参数打开测试 做好之后，localhost:3000会加载首页，
+而localhost:3000？test=1会加载包含测试的首页
+
+用 中间件 检测查询字符串中的test=1 出现在定义的路由之前
+
+app.use(function(req,res,next){
+	res.locals.showTests = app.get("env") !== "production" && req.query.test === "1";
+});
+
+如果text=1出现在任何页面中的查询字符串中（并且不是运行在生产服务器上）
+属性res.locals.showTests会被设置为true，
+res.locals对象是要传给视图上下文的一部分
+第7章
+
+可以打开meadowlark.handlebars 引入测试框架，修改head部分
+
+使用jquery做网站的主dom处理库，还可以用作测试断言，可以用自己喜欢的任何库或者根本不用，建议用jquery，
+js库应该最后加载，放在body之前，现在要早点引入jquery
+
+先从全局测试开始
+再增加针对各个页面的测试，先从单一的简单的测试开始，确保页面具有有效的标题
+
+性能调优的第一条原则：先测量 再调优
+
+mocha支持多种界面来控制测试的风格
+默认界面是行为驱动开发 BDD 让你以行为的方式思考，
+在bdd中，你描述组件和他们的行为，然后用测试去验证这些行为，
+然而，这些测试经常不适合這一模型，bdd语言看起来很怪
+
+测试驱动开发tdd更具可行性
+描述的是测试集和其中的测试，
+可以使用两种界面进行自己的测试，但会造成配置上的困难，
+本书坚持使用tdd，
+
+
+在路由中指明视图应该使用哪个页面测试文件
+如果想让测试更加自动化，
+多个路由指向相同的视图，甚至是非常相似的内容，可能想要使用同一测试文件，伴随本书进程会不断增加
+
+
+
+跨页测试
+
+控制和观测浏览器
+
+有了测试对象，需要测试它的方法，事情开始变得复杂了
+要测试这个功能，就需要一个浏览器，可以手动去访问，然后点击链接
+再查隐藏表单元素，看是否正确填上了引用页，太麻烦希望可以自动化
+
+自动化：
+
+找无头浏览器：不需要在屏幕显示什么，但必须表现得像一个浏览器
+目前三种方案：
+selenium\PhantomJS\Zombie
+
+zombie没有使用已有的浏览器引擎，不是测试浏览器的功能特性，但测试基本功能还是可以的
+
+setup参数是一个函数，测试框架运行每个测试之前都会执行它，为每一个测试创建一个浏览器实例，
+有三个测试，前两个检查如果你来自产品页面，引用页面是否正确，
+方法browser.visit会真正加载页面，页面加载完成后，就会调用回调函数
+方法browser.clickLink会找到class为requestGroupRate的链接，并访问它，链接目标页面加载完后调用回调函数，就找到了requestgrouprate页面，
+剩下要做的是 断言隐藏域referrer跟原来访问的页面是匹配的，borwser.field方法会返回一个dom元素对象，具有value属性，最后一个测试只是确保直接访问requestGroupRate页面时referrer为空
+
+在测试之前先启动服务器，运行测试，确保全局安装的mocha
+
+p66
+
+在实现功能特性之前写测试有一个优点，如果测试正确的话，即他们一开始都会失败，
+如果还没实现任何功能特性测试就能通过，这个测试很可能有问题，
+：红灯绿灯测试
+
+
+
+逻辑测试
+
+用mocha作逻辑测试，只添加单元测试，
+
+测试熵功能（随机功能）很有挑战性
+无法知道一个东西是否是随机产生的，
+一种方式是获取数量庞大，然后测试响应的分布情况，如果函数确实是随机的，就不会有突出的响应，
+缺点是不确定性：某个幸运饼干的出现频率有可能比其他幸运饼干多10倍，这种情况出现，测试可能失败，取决于给予随机设置的阈值有多激进，实际上也不并不能表明所测试的系统是失败的，只是测试熵系统的一种原则，具体到饼干生成器，可能生成50个，至少有三种不同的就是合理的
+另一种方式 为科学模拟或啊取暖组件开发随机源，可能要做更详细的测试，重点是测试熵功能很困难
+
+
+
+去毛
+
+最早的去毛机是jslint=》jshint（推荐）
+eslint
+坚持使用去毛机
+
+链接检查
+LinkChecker（推荐）
+
+用grunt实现自动化
+
+grunt/gulp可以实现这些任务的自动化
+把逻辑测试、跨页测试、去毛、链接检查放到一个grunt命令中，
+没有页面测试？：
+phantomjs或者zombie可以做到，但配置复杂
+（浏览器测试通常被设计成运行在单个页面上，将其合到其他测试中没有太大价值）
+
+grunt靠插件完成任务
+
+在加载插件部分，指定了要用哪些插件，将其全部放到数组中
+用foreach遍历
+
+配置插件部分
+必须做些工作，让每个插件都能正常工作
+
+cafemocha：
+逻辑和跨页测试，告诉他们测试在哪里，将所有测试放到子目录qa下，
+在文件名中添加tests前缀，必须指定tdd界面，如果是tdd和bdd混合的界面，则必须将其分开，
+例如可以用tests-tdd-和tests-bdd-前缀
+
+对于jshint
+指定对哪些js文件去毛，依赖项经常不一定通过jshint 或者用的是不同的jshint设置，可能会被jshint淹没
+确保别把node_modules目录和vendors目录包含在内，
+目前grunt-contrib-jshint不能排除文件，只能包含他们，所以必须指定所有想要包含的文件，
+（一般会将包含我呢见分成两个列表：真正构成应用程序或者网站的js，以及qa js都要去毛，分开更容易管理 /**/ 子目录中的所有文件，隐含着排除node_modules和public/vendors目录）
+
+最后配置了grunt-exec插件，让其运行linkchecker 将端口3000硬编码到配置里，这里最好可以参数化
+
+最后注册了这些任务，将单个插件放到一个命名分组中，一个特定名称的任务default，在输入grunt后会默认运行
+
+(报错)
+
+持续集成
+
+实用的QA概念：持续集成CI
+目前node的CI浏览器是Travis CI：
+托管解决方案，github也提供了卓越的支持
+非常成熟的jenkins也有node插件
+jetbrains优秀的teamcity也提供node插件
+
+
+
+请求和响应对象
+
+url的组成部分
+
+协议：
+确定如何传输请：http/https/ftp/file
+
+主机名：
+标识服务器：运行在本地计算机和本地网络的服务器可以简单的表示
+在internet环境下，主机名通常以一个顶级域名结尾例如.com/.net
+还有子域名作为主机名的前缀，
+子域名可以是任何形式，www最常见
+
+端口：80端口负责http传输，443负责https传输
+如果不使用80和442,需要大于1023的端口（容易记忆）
+
+路径：
+是应用中的页面其他资源的唯一标识
+
+查询字符串：
+键值对集合，？开头键值对则以 & 分隔开
+所有键值必须是url编码 
+js(encodeURIComponent)处理
+空格被+替换，其他特殊字符被数字型字符替换
+
+信息片段：
+信息片段或散列 被严格限制在浏览器中使用，不会传递的服务器，
+用其控制单页应用或者ajax富应用越来越普遍
+
+
+http请求方法：
+
+get 和post最常见
+点击链接服务器收到http get请求，重要的信息是url路径和查询字符串
+
+post用来提交表单处理，服务器将请求中所有信息处理完成之后
+用以响应的html通常与相应的get请求一样
+
+与服务器通信时，浏览器只使用get和post方法（如果没有使用ajax）
+
+其他方法 
+delete 接受api指令删除功能
+使用node和express可以完全掌控响应的方法
+在express中针对特殊方法编写处理程序
+
+
+请求报头
+app.get("/headers",function(req,res){
+	res.set("Content-Type","text/plain");
+	var s = "";
+	for(var name in req.headers) {	
+		$ += name +";"+req.headers[name]+"\n";
+	}
+	res.send($);
+});
+
+响应报头
+元数据和服务器信息
+浏览器根据内容类型决定内容应该如何渲染
+除了内容类型外，报头还会指出响应信息是否被压缩，以及使用的是哪种编码，
+响应报头还可以包含关于浏览器对资源缓存时长的提示，优化的重点(16章
+
+包含服务器的信息：服务器的类型，操作系统信息，返回服务器信息存在不安全隐患，重视安全的服务器经常忽略此信息，甚至提供虚假信息
+禁用express的x-powered-by：
+app.disable("x-powered-by");
+
+互联网媒体类型
+
+一个类型，子类型和可选参数组成
+text/html;charset=UTF-8 类型是text 子类型是html 字符编码是UTF-8
+
+请求体：
+常见媒体类型：application/x-www-form-urlendcoded
+post请求支持文件上传 multipart/form-data
+ajax请求 application/json
+
+参数：
+查询字符串、会话（cookies）、请求体、指定的路由参数（14）
+node应用中，请求对象的参数方法会重写所有的参数，
+通常会带来问题；一个参数在查询字符串时，另一个在post请求体中或会话中，哪个请求会赢？这个会产生bug
+php是产生这种混乱的主要原因，为了尽量方便，它会将所有参数重写入一个叫$_REQUEST的变量 
+将学习保存不同类型参数的专用属性
+
+请求对象：
+通常传递到回调方法，可以随意命名req or request
+ 请求对象的生命周期十余node的一个核心对象http.IncomingMessage的实例
+express添加了一些附件功能：
+
+req.params
+一个数组，包含命名过的路由参数，14章
+
+req.param(name)
+返回命名的路由参数，或者get请求或post请求，（建议忽略）
+
+req.query 
+一个对象，包含键值对存放的查询字符串参数，通常称为get请求参数
+
+req.body
+一个对象，包含post请求参数，这么命名因为
+post请求参数在REQUEST正文中传递，而不像查询字符串在url中传递，
+要使req.body可用，需要中间件能够解析请求正文内容类型 第10章
+
+req.route
+当前匹配路由的信息，主要用于干路由调试
+
+req.cookies/req.signedCookies
+一个对象，包含从客户端传递过来的cookies值 第9章
+
+req.headers
+从客户端收到的请求报头
+
+req.accepts([type])
+确定客户端是否接受一个或者一组指定类型（可选类型可以是单个mime类型，入application/json,一个逗号分隔集合或是一个数组）
+
+
+req.ip
+客户端的ip地址
+
+req.path
+请求路径（不包含协议，主机，端口或查询字符串）
+
+req.host
+返回客户端所报告的主机名（可以伪造）
+
+req.xhr
+请求由ajax发起返回true
+
+req.protocol
+标识请求的协议
+
+req.secure
+链接是安全的返回true 等同于 req.protocol === "https"
+
+req.url/req.originalUrl
+返回路径和查询字符串（不包含协议主机端口）
+req.url出于内部路由目的，可以重写
+originalUrl旨在保留原始请求和查询字符串
+
+req.acceptedLanguages
+返回客户端首选的一组（人类）语言，这些信息从请求报头中解析而来
+
+响应对象
+
+响应对象的生命周期始于node核心对象http.ServerResponse实例
+
+属性方法：
+
+res.status(code)
+设置http状态码 默认200成功
+对于重定向可以用redirect方法
+
+res.set(name,value)
+设置响应头，一般不需要手动设置
+
+res.cookie（name,value,[options]）
+res.clearCookie(name,[options])
+设置或清除客户端cookie值，需要中间件支持 第9章
+
+res.redirect([status],url)
+重定向浏览器，默认重定向代码是302（建立）
+尽量减少重定向，如果永久移动页面301
+
+res.send(body)
+res.send(status,body)
+向客户端发送响应及可选的状态码
+默认内容类型是text/html
+如果想改成text/plain 
+需要在res.send之前调用res.set("Content-Type","text/plain")
+如果body是一个对象或数组，响应会以JSON发送，
+如果想发送json，建议用res.json
+
+res.json(json)
+res.json(status,json)
+向客户端发送JSONP及可选的状态码
+
+res.type(type)
+设置content-type头信息，
+相当于res.set("content-type","type"),
+如果提供了没有斜杠的字符串，试图将其当作文件的扩展名映射为一个互联网媒体类型，
+例如：
+res.type("txt")会将content-type设为text/plain 
+在某些领域可能有用，避免使用它
+
+res.format(object)
+这个方法允许你根据接收请求报头发送不同的内容，在api中的主要用途，
+第15章 例如：
+res.formate({"text/plain":"hi there","text/html":"<b>hi there</b>"});
+
+res.attachment([filename])
+res.download(path,[filename],[callback])
+将响应报头content-disposition设为attachment，浏览器会选择下载而不是展现内容，可以指定filename给浏览器作为对用户的提示，
+用res.download可以指定下载的文件，而res.attachment只是设置报头
+另外还要将内容发送到客户端
+
+res.sendFile(path,[option],[callback])
+根据路径读取指定文件并将内容发送到客户端，
+使用静态中间件，将文件发送到客户端的公共目录下，
+如果想根据在相同的url下提供不同的资源，可以使用这个方法
+
+res.links(links)
+设置链接响应报头，专用的报头，在大多数程序中没有用处
+
+res.locals
+res.render(view,[locals],callback)
+res.lcoals是一个对象，包含用于渲染视图的默认上下文，
+res.render使用配置的模板引擎渲染视图
+(不能将render中的locals参数和res.locals混为一谈，上下文在res.locals中会重写，但没被重写仍然可用)
+render默认响应码为200
+res.status可以指定一个不同的代码
+视图渲染 第7章
+
+
+获取更多信息
+
+js使用原型继承 node提供了express的扩展对象
+添加的程序包也可以扩展，弄明白什么是可用的是个challenge
+通常推荐逆向作业，如果想要查询功能，查看api文档
+如果需要的信息没有在文档中，需要去源码中获取
+express源码说明：
+
+lib/application.js
+express主接口，了解中间件如何接入，视图如何被渲染
+
+lib/express.js
+相对较短的shell，是lib/application.js中connect的功能性扩展，
+返回一个函数，可以用http.createServer运行express应用
+
+lib/request.js
+扩展了node的http.IncomingMessage对象，提供了一个稳健的请求对象
+请求对象的属性和方法都在这里
+
+lib/response.js
+扩展了node的http.ServerResponse对象，提供响应对象，
+响应对象的属性和方法都在这里
+
+lib/router/route.js
+提供基础路由支持
+路由是应用的核心
+
+需要参考node文档特别是http模块部分
+
+
+小结 
+
+内容渲染
+大多数是用res.render 最大程度的根据布局渲染视图
+想写一个快速测试页面 可以用res.send 
+可以使用req.query得到查询字符串的值
+使用req.session得到会话值
+req.cookie/req.signedCookies得到cookies值
+
+基本用法 
+app.get("/about",function(req,res){
+	res.render("about");
+})
+
+200以外响应码
+
+app.get("/error",function(req,res){
+	res.status(500);
+	res.render("error");
+})
+
+or
+
+app.get("/error"，function(req,res){
+	res.status(500).render("error");
+});
+
+将上下文传递给视图，包括查询字符串，cookie和session
+
+app.get("/greeting",function(req,res){
+	res.render("about",{
+		message:"welcome",
+		style: req.query.style,
+		userid: req.cookie.userid,
+		username: req.session.username	
+	});
+});
+
+没有布局的视图渲染
+
+下面layout没有布局文件//views/no-layout.handlerbars
+必须包含必要的HTML
+
+app.get("/no-layout",function(req,res){
+	res.render("no-layout",{;ayout:null});
+});
+
+使用定制布局渲染视图
+使用布局文件//views/layouts/custom.handlerbars
+
+app.get("/custom-layout",function(req,res){
+	res.render("custom-layout",{layout:"custom"});
+})
+
+渲染纯文本输出
+
+app.get("/test",function(req,res){
+	res.type("text/plain");
+	res.send("this is a text");
+})
+
+添加错误处理程序
+//出现在所有路由方法的结尾
+//即使不需要一个“下一步”的方法，也必须包含它，以便express将它识别为一个错误处理程序
+app.use(function(err,req,res,next){
+	console.error(err.stack);
+	res.status(500).render("error");
+})
+
+添加一个404程序
+//出现在所有路由方法的结尾
+app.use(function(req,res){
+	res.status(404).render("not found");
+})
+
+
+处理表单
+
+表单信息一般在req.body中，偶尔在req.query中
+可以使用req.xhr来判断是ajax请求还是浏览请求 第8章
+
+基本表单处理
+//必须引入中间件body-parser
+app.post("/process-contact",function(req,res){
+	console.log("Received contact from"+ req.body.name +
+	"<"+ req.body.mail+">");
+	//save to database
+	res.redirect(303,"/thank-you");
+});
+
+更强大的表单处理
+//必须引入中间件body-parser
+app.post("/process-contact",function(req,res){
+	console.log("Received contact from "+ req.body.name + 
+	"<"+req.body.mail+">");
+	try {
+		//保存到数据库
+		if(res.xhr){
+			return res.render([sucess:true]);	
+		} else {
+			return res.redirect(303,"/thank-you");
+		}
+	} catch(ex){
+		if(res.xhr) {
+		  return res.json({error:"Database error"});
+		} else {
+		  return res.redirect(303,"/database-error");
+		}
+	}
+});
+
+提供一个api
+
+如果提供一个类似表单处理的api，参数通常会在req.query中
+虽然也可以使用req.body
+但与其他api不同，这种情况下通常会返回json\xml或纯文本，而不是html
+你会经常使用不太常见的http方法，如put post delete 提供api将在15章讨论
+
+“产品”数组
+var tours = [
+	{id:0,name:"Hood River",price:99.99},
+	{ud:1,name:"Oregon Coast",price:149.95}
+];
+
+“节点”一词经常用于描述api的单个方法
+
+简单的get节点，只返回json数据
+app.get("/api/tours",function(req,res){
+	res.json(tours);
+})
+
+根据客户端的首选项，使用express中的res.formate方法对其响应
+
+get节点，返回json,xml or text
+app.get("/api/tours",function(req,res){
+	var tourXMl = '<?xml version="1.0"?><tours>' + 
+		products.map(function(p){
+			return '<tour price=" '+p.price+' "id=" 		' + p.id + '">'+p.name+'</tour>';
+	}).join('')+'</tours>'';
+	var toursText = tours.map(function(p){
+		return p.id +":"+p.name+'('+p.price+')';
+	}).join('\n');
+	res.formate({
+		"application/json":function(){ res.json(tours)},
+		"application/xml":fucntion(){ 
+			res.type("application/xml");
+			res.send(tourXml);
+		},
+		"text/xml":function(){
+			res.type("text/xml");
+			res.send(toursXml);
+		},
+		"text/plain":function(){
+			res.type("text/plain");
+			res.send(toursXml);
+		}
+	});
+});
+put节点更新一个产品信息，然后返回json，在参数查询字符串中传递
+（路由字符串中的“:id” 命令express在req.params中增加一个id属性）
+
+
+用于更新put节点
+//api用于更新一条数据并返回json,参数在查询字符串中传递
+app.put("/api/tour/:id",function(req,res){
+	var p = tours.some(function(p){
+		return p.id == req.params.id
+	});
+	if(p){
+		if(req.query.name) p.name = req.query.name;
+		id(req.query.price) p.price = req.query.price;
+		res.json({success:true});
+	} else{
+		res.json({error:"no such tour exists"});
+	};
+})
+
+del节点
+
+用于删除的del节点
+//api用于删除一个产品
+
+api.del("/api/tour/:id",function(req,res){
+	var i;
+	for(var i = tours.length-1;i>=0;i--){
+		if(tours[i].id == req.params.id){
+			break;
+		}
+		if(i>=0){
+			tours.splice(i,1);
+			res.json({success:true});
+		} else {
+			res.json({error:"no such tour exists"});
+		}
+	}
+})
+
+
+handlebars模板引擎
+
+模板引擎已经与开发语言解耦 例如mustache
+由js生成的html充满了问题：
+
+考虑哪些字符需要转义以及如何转义
+用js生成那些自身包含js代码的html会抓狂
+失去编辑器的语法高亮和其他方便的语言特性
+很难发现格式不正确的html
+很难直观的分析
+很难让别人读懂你的代码
+
+模板解决了在目标语言中编写代码的问题，同时让插入动态数据成为了可能
+
+mustache模板将之前的例子重写：
+<h1>Much Better</h1>
+<p>No <span class="code">document.write</span> here!</p>
+<p>Today's date is {{today}}</p>
+
+现在要考虑的就是给{{today}}赋值，这是模板语言的核心
+
+
+唯一一条绝对规则
+
+并不是一定不能在js中编写html，尽量避免这么做，
+可以使用jquery库让其变得的更优美
+
+只有在最简单的情况下使用js生成html 其他时候使用模板
+
+
+选择模板引擎
+性能：尽可能快
+客户端、服务端、兼而有之：两端都优秀的模板
+抽象：让代码可读
+
+dust\handlebars
+template-engine-chooser工具
+
+
+jade不走寻常路抽象html细节
+
+
+handlebars基础
+
+mustache的扩展
+
+模板引擎的关键  上下文环境context
+渲染一个模板时，便会传递给模板引擎一个对象叫做上下文环境
+替换标识运行
+例：
+{name:"jim"}
+<p>hello,{{name}}</p>
+渲染成：<p>hello,jim</p>
+传入html：
+{name:"<b>jim</b>"}
+渲染成：<p>hello,&lt;b&gt;jim &lg;b&gt;</p>
+可以写成{{{name}}}三个括号
+
+应当避免在js中编写html代码，使用三括号有重要用途，
+用斌编辑器建立一个cms系统，希望向视图曾传递html文本，
+脱离html渲染上下文属性对于布局和章节很重要
+
+
+注释
+{{! super-secret comment}}
+<!--not-so-secret -- >
+
+这是服务器端模板，上面super不会传递到浏览器，
+如果查看html源文件，下面not-so会被看到
+
+块级表达式
+流程控制、条件执行、可扩展性
+
+{
+	currency:{
+		name:"usa",
+		abbrev:"usd"
+	},
+	tours:[
+		{name:"hooid river ",price:"$99.95"},
+		{name:"oregon coast",price:"$159.95"}
+	],
+	specialUrl:"/january-specials",
+	currencies:["usd","gbp","btc"]
+}
+
+将上下文对象传递到如下模板:
+
+<ul>
+	{{#each tours}}
+		{{! i'm in a new block...and}}
+		<li>
+			{{name}} - {{price}}
+			{{#if ../currencies}}
+				{{{../../currency.abbrev}}}
+			{{/if}}
+		</li>
+	{{/each}}
+</ul>
+{{#unless currencies}}
+	<p>al prices in {{currency.name}}</p>
+{{/unless}}
+{{#if specialUrl}}
+	{{! i'm in a new block ..but}}
+	<p>check out our <a href="{{specialUrl}}"></a></p>
+{{else}}
+	<p>Please check back often for specials.</p>
+{/if}
+<p>
+	{{#each currencies}}
+		<a href="#" class="currency">{{.}}</a>
+	{{else}}
+		Unfortunately,we-only accept {{currency.name}}.
+	{{/each}}
+</p>
+
+
+上下文属性本身就是对象，可以直接访问它的属性
+
+在handlebars中，所有块都会改变上下文，
+在if块中，会产生一个新的上下文，这刚好是上一级上下文的副本，
+in another words， 
+在if或else块中，
+上下文与上一级上下文是相同的，
+但当在each块中使用if需要注意
+在each循环体中，可以使用../.访问上级上下文
+不过，在{{#if ../currcies}}块中，又进入了一个新的上下文，
+所以要想获得currency，就应该使用../../. 
+第一个../获得产品的上下文，第二个获得最外层的上下文 产生混乱
+避免在each块中使用if块
+
+在if和each块中，有可选的else快
+对于each，如果没有任何元素就执行else块
+也用到了unless方法，与if辅助方法是相反的
+在参数为false时，才会执行
+
+最后要注
+在{{#each currencies}}块中使用{{.}}
+{{.}}指向当前上下文，在这个例子中，当前上下文只是打印数组中的字符串
+
+访问当前上下文还有另外一种独特的用法，
+可以从当前上下文的属性中区分出辅助方法，
+例：如果一个辅助方法叫foo，在当前上下文中有一个属性也叫foo
+则{{foo}}指向辅助方法，{{./foo}}指向属性
+
+服务器端模板
+将会在html发送到客户端之前渲染它，与客户端模板不同，
+客户端模板会被查看源html文件用户看到，你的用户不会看到服务器端模板，或用于最终生成html的上下文对象
+
+除了隐藏实现细节，还支持模板缓存，对性能很重要
+模板引擎会缓存已经编译的模板，(当模板发生改变才会重新编译和重新缓存)，会改进模板视图的性能，
+默认情况下，视图缓存会在开发模式下禁用，在生产模式下启用，
+显示启用视图缓存，app.set("view cache":true);
+
+express支持jade ejs jshtml
+需要添加node包，让express提供handlebars支持
+
+先
+npm install express-handlebars
+然后在express中引入,
+var handlebars = require("express3-handlebars")
+		.create({defaultLayout:"main"});
+app.engine("handlebars",handlebars.engine);
+app.set("view engine","handlebars")
+
+ express-handlebars让handlebars模板有了.handlebars扩展名，
+可以在创建 express-handlebars实例的时候，
+require("express3-handlebars").create({extname:"hsb"})
+将扩展名改成.hbs
+
+视图和布局
+视图表现网站各个页面或者ajax局部加载的内容或电子邮件或页面上任何
+
+默认情况下，express会在views子目录中查找视图，
+
+布局是一种特殊的视图
+是一个用于模板的模板，布局必不可少
+大部分页面几乎有相同的布局
+example:
+<!doctype html>
+<html>
+<head>
+	<title>Meadowlark Travel</title>
+	<link rel="stylesheet" href="/css/main.css">
+</head>
+<body>
+	{{{body}}}
+</body>	
+</html>
+
+在哪里放置{{{body}}}没有限制，
+例如想用bootstrap3构建一个响应式布局，将视图放进div容器中
+常见的页眉和页脚也在布局中，而不在视图中
+
+<body>
+	<div class="container">
+		<header><h1>Meadowlark Travel</h1></header>
+		{{{body}}}
+		<footer>&copy; {{copyrightYear}} 				Meadowlark Travel</footer>
+	</div>
+</body>
+
+视图首先被渲染，之后是布局
+逆向运行，允许视图本身自定义布局，（讨论段落时）
+
+由于执行的顺序，可以向视图中传递叫body的属性，会在视图中正确渲染，当布局被渲染时，body的值被已渲染的视图覆盖
+
+在express中使用或不使用布局
+创建视图引擎会指定默认布局，
+var handlebars  = require("express3-handlebars")
+		.create({defaultLayout:"main"});
+
+
+默认情况下，express会在views子目录中查找视图，在views/layouts下查找布局，
+如果有一个叫作views/foo.handlebars的视图 可以这样渲染它
+
+app.get("/foo",function(req,res){
+	res.render("foo");
+});
+
+
+它会使用view/layouts/main.handlebars作为布局，
+如果根本不想使用布局，（视图中不得不拥有所有的样板文件）
+可以在上下文中指定 layout:null
+
+app.get("/foo",function(req,res){
+	res.render("foo",{layout:null});
+})
+
+or 想使用一个不同的模板，可以指定模板名称
+
+app.get("/foo",function(req,res){
+	res.render("foo",{layout:"microsite"})
+})
+这样就会使用view/layout/microsite.handlebars渲染视图
+
+拥有的模板越多，需要维护的基础html布局就越多，
+如果在页面布局上有很大不同，
+
+
+局部文件
+
+有些组成部分（前端称之为组件）需要在不同的页面重复使用
+
+使用模板来实现这一目标的唯一方法是使用局部文件，
+（partial,并不渲染整个视图或整个网页）
+
+创建局部文件views/particals/weather.handlebars
+<div class="weatherWidget">
+	{{#each partials.weather.locations}}
+		<div class="location">
+			<h3>{{name}}</h3>
+			<a href="{{forecastUrl}}">
+				<img src="{{iconUrl}}" 				     alt="{{weather}}",{{temp}}>
+			</a>
+		</div>
+	{{/each}}
+	<small>Source:<a href="http://wunderground/com">Weather
+		Underground</a></small>
+</div>
+
+将上下文传递给每一个视图 res.locals(对任何视图可用)
+并不象让个别的视图干扰指定的上下文，于是将所有的局部文件上下文都放在partials对象中
+
+在19章 可以看到如何通过免费weather ground api来获得当前天气信息
+现在先使用虚拟数据
+
+function getweatherData(){}
+
+创建一个中间件给res.locals.partials对象添加这些数据，（第10章学习中间件）
+
+app.use(function(req,res,next){
+	if(! res.lcoals.partials){
+		res.locals.partials={};
+	}
+	res.locals.particals.weather = getWeatherData();
+})
+
+//{{>weather }}
+
+语法{{> partial_name}}可以在视图中包含一个局部文件，
+express3-handlebars会在views/partials中寻找一个叫做
+partial_name.handle-bars的视图
+
+express3-handlebars支持子目录，如果有大量的局部文件，可以将其组织在一起，
+例如：有很多社交媒体局部文件，可以放在views/partials/socials目录下然后使用{{> social/facebook}}、 {{> social/twitter}}等引入他们
+
+
+段落
+
+从Razor中借鉴了section段落概念
+如果所有视图都布局中正在放在一个单独元素里，布局会正常
+但视图本身需要添加到布局的不同部分？
+视图需要向head元素中添加一些，或者插入jquery的<script>脚本
+（引入jquery，性能原因，布局中最后做的事）
+
+express3没有针对此的内置方法
+handlebars辅助方法让事情变得简单
+当实例化handlebars对象时，会添加叫作section的辅助方法
+
+var handlebars = require("express3-handlebars").create({
+	defaultLayout:"main",
+	helpers:{
+		section:funciton(name,options){
+			if(! this._sections){
+				this._sections = {};
+			}
+			this._sections[name] = options.fn(this);
+			return null;
+		}
+	},
+})	
+
+现在可以在视图中使用section辅助方法，
+创建一个视图（views/jquerytest.handlebars）
+
+完善你的模板
+
+模板使网站的核心。好的模板结构可以节省开发时间促进网站的一致性
+减少差异布局的数量
+
+模板也是应对浏览器兼容问题和有效网页标准的第一防线
+
+html5 boilerplate
+在实际项目中使用
+
+另一种流行的方式是使用第三方主题
+像themeforest这种网站上有很多种即用模板
+使用第三方主题要考虑主文件通常是index.html入手，将其命名为
+main.handlebars，也可以任意命名布局文件，将静态资源（css img js）
+放到公共目录下，
+然后需要编辑模板文件并指出在什么地方放置{{{body}}}表达式
+根据模板上的元素，也许会想将其中一些放在局部文件里，
+
+
+如果某个元素出现在每一个文件里，将其放到模板文件里
+如果只出现在某个文件里，将其放到视图里
+如果出现在几个页面里，将其放到局部文件里
+
+
+
+客户端handlebars
+
+想显示动态内容，handlebars客户端模板可以使用
+ajax可以返回html片段 将其插入dom中
+handlebars允许使用json数据接收ajax调用结果，并
+
+在客户端使用handlebars之前，
+需要加载handlebars
+可以将handlebars放在静态资源中引入，也可以使用cdn
+
+
+
+表单处理
+
+向服务器发送客户端数据
+查询字符和请求正文
+查询get 请求post
+推荐使用post进行表单提交
+
+html表单
+action始终提供一个有效值，即便使用ajax提交 第22章
+
+编码
+默认媒体类型 "application-x-wwwform-urlencoded"
+上传文件"multipart/form-data"(将被express下一版本移除)
+
+处理表单的不同方式
+
+单独路径处理表单
+
+决定如何响应服务器
+
+-直接响应html
+处理表单之后，可以直接向浏览器返回html
+不推荐
+-302重定向
+
+-303重定向
+无论什么方法都应该使用303方法（推荐方法）
+
+重定向指向哪里？
+
+重定向到专用的成功/失败页面
+需要为适当的成功或失败消息提供url
+优点：便于分析
+缺点：为每一种可能性分配url
+
+运用flash消息重定向到原位置
+许多小表单分散到各个站点可以用ajax
+如果不想使用ajax可以重定向到之前的浏览页面
+最好的方法
+在当前的表单中使用一个隐藏域来存放当前的url
+
+运用flash消息重定向到新位置
+大型表单通常有自己的页面
+
+如果使用ajax推荐使用专门的url
+
+espress表单处理
+如果使用get进行表单处理，表单域在req.query对象中
+如果有一个名称属性为email的
+可以使用req.query.email的形式传递到处理程序
+
+如果使用post（推荐）
+需要引入中间件来解析url编码体
+安装body-parser中间件
+然后引入app.use(require("body-parser")());
+
+一旦引入body-parser ，发现req.body变为可用
+所有表单字段将可用
+req.query并不阻止你使用查询字符串
+
+处理ajax表单
+
+express提供了两个方便的属性
+req.xhr和req.accepts
+
+如果是ajax请求，req.xhr为true
+req.accepts试图确定返回的最合适的响应类型 
+在此例中
+req.accepts("json.html")询问最佳返回格式是html还是json
+
+根据accepts http头信息推断出来，浏览器提供的可读的 有序的响应类型列表
+如果是一个ajax请求，或者user-agent明确要求json格式优先html，那么就会返回合适的json数据，否则返回重定向
+
+函数可以做任何处理，通常会将数据保存到数据库，如果出现问题，会触发err属性的json对象，或重定向到一个错误的页面
+
+（jquery通常假定所有数据都是json格式，如果想让ajax处理程序通用，或者知道ajax请求使用json之外的东西，可以根据accepts头信息 req.accepts辅助方法可以轻松访问）返回适当的响应
+
+文件上传
+
+对于复合表单处理
+有两种选择 busboy 和formidable 
+busboy(对于每个字段和文件事件进行监听)
+formidable 回调方法提供包含字段和文件信息的对象
+
+
+也可以使用formdata对象使用ajax文件上传
+
+year和month 是路由参数 第14章
+
+基于云端存储 第13章
+
+jquery文件上传
+
+jquery file upload
+
+
+
+除非为所有访问者提供一个共用的文件上传区域
+否则要将上传文件区分开来
+简单的方法是创建一个时间戳目录来存储文件，
+或
+使用用户id或其他唯一id来创建子目录
+如果实现一个支持文件共享的聊天程序，可能会使用聊天室id
+
+
+8cookie与会话
+
+http是无状态协议
+
+cookie：
+cookie对用户来说不是加密的
+用户可以删除或禁用cookie
+一般的cookie可以被篡改（推荐使用签名cookie）
+cookie可以用于被攻击xss跨站脚本攻击 使用恶意js脚本修改cookie中的内容
+滥用cookie 用户会注意到 限制在最小的使用范围内
+如果可以选择 会话要优于cookie
+可以用会话维持状态 
+
+当服务端希望客户端保存一个cookie时，它会发送一个响应头set-cookie
+包含名称/值对，党客户端向服务器发送含有cookie的请求时，他会发送包含多个请求头cookie，其中包含这些cookie值
+
+凭证的外化 
+
+为了保证cookie的安全 必须有一个cookie的密钥（字符串）
+在cookie被发送到客户端之前进行加密（随机字符串）
+xkcd来生成cookie密钥
+
+外化第三方凭证是常见做法
+cookie密钥 数据库密码 api令牌
+易于维护，scs忽略凭证文件
+
+credentials.js
+
+module.exports = {
+	cookieSecret:"put your cookie here",
+};
+
+将之引入到源码库只需
+var credentials = require("./credentials.js");
+
+express中的cookie
+
+先引入中间件，cookie-parser
+
+之后可以任何地方使用 设置cookie 或  签名cookie
+res.cookie("monster","nom nom");
+res.cookie("signed_master","nom nom",{singed:true});
+
+签名cookie优先级高于未签名cookie，如果将签名cookie named 
+signed_master so you cant use this named un marked cookie again
+it return would became undefiend
+
+if u want to take the cookie value frome the browser (if has),
+just to view the object's cookie or signedCookie attribute
+
+var monster = req.cookies,monster;
+var signedMonster = req.signedCookies.monster;
+
+every string an be the name of the cookie,for example,
+we can use "signed monster" instead of "signed_monster"
+but we must use 括号 so that could take the cookie
+req.signedCookies["signed monster"]
+writer suggests dont use the special string in cookie's name 
+
+delete cookie 
+res.clearCookie("monster");
+
+set the cookie:
+domain:
+you can control the domain relationship with the cookie
+控制跟cookie关联的域名 将cookie分配给子域名
+不能给cookie设置跟服务器所有域名不同的域名
+
+
+path
+cookie路径 使用默认值/ 应用到所有页面上
+/foo 只应用到/foo /foo/bar页面上
+
+maxAge客户端应该保存cookie多长时间 单位毫秒
+如果省略，浏览器关闭cookie被删掉
+也可以使用expiration 指定cookie的过期日期
+建议使用maxAge
+
+secure
+指定cookie只通过https发送
+
+httpOnly
+将之设置true会对这个cookie签名 需要用res.signedCookies 
+而不是res.cookies 访问它 
+被篡改的签名会被服务器拒绝，并且将cookie值重置为原始值
+
+检查cookie
+
+作为测试的一部分 可能想检查cookie的方法
+chrome开发者工具
+
+
+会话
+
+状态维护方法
+ 否则在多个请求中无法识别客户端
+包含唯一标识的cookie 服务器用这个标识获取相应的会话信息
+
+cookie恐慌的高峰时期 
+在url添加会话信息 
+html5提供了本地存储
+
+两种实现会话的方法：
+把所有东西都存放在cookie里（基于cookie的会话，仅仅表示比使用cookie便利）如果只存少量信息 可以使用这种方式
+
+或
+只在cookie里存一个唯一标识
+其他东西都存在服务器里
+
+内存存储
+
+将会话信息存在服务器上
+入门选择内存会话
+缺陷：重启服务器会话消失
+如果扩展了多台服务器 那么请求可能是不同的服务器处理 所以会话数据有时在那里 有时不在
+13章介绍永久存储会话信息
+
+安装express-session
+
+中间件接受如下配置对象
+
+key
+存放唯一会话标识的cookie名称 
+connect.id
+
+store
+会话存储实例
+默认memoryStore实例（13、数据库存储）
+
+cookie
+会话的cookie设置（path\domai\secure）常规的cookie默认值
+
+使用会话
+
+
+请求使用对象的session变量属性：
+req.session.userName = "Anonymous";
+vat colorScheme = req.session.colorScheme || “dark”;
+
+不是用请求对象获取值 用响应对象设置值
+全部在请求对象上操作（响应对象没有session属性）
+删除会话可以用js的delete
+req.session.userName = null;
+delete req.session.colorScheme;
+
+
+会话实现即现消息
+
+不破坏用户导航的前提下想用户提供反馈的一种办法
+
+可以使用查询字符串 最好使用 会话实现即现消息
+
+传递处理错误 404
+
+不传递错误500内部连接错误
+
+
+中间件
+
+功能封装方式
+
+封装在程序中处理http请求的功能
+
+
+中间件一般有三个参数 请求、响应、next函数 
+4个参数 err,req,res,next
+
+
+中间件在管道中执行
+在最后放一个捕获一切的请求是处理器的常见做法
+
+处理跟前面其他所有路由都不匹配的请求，并返回404
+不调用next，请求在那个中间件终止
+
+中间件和路由处理器：
+
+路由处理器app.get app.post 统称为app.VERB
+看作只处理特定http谓词 get post的中间件
+也可以看做处理全部http谓词的路由处理器 == app.all
+路由处理器的第一个参数必须是路径 所有路径“/”
+中间件也将路径作为第一个参数，可选项 如果忽略就是所有路径页面
+
+路由处理器和中间件的参数都有回调函数，但函数有2个3个4个参数
+2、3个参数 req,res next
+4个参数err,req,res,next 
+
+如果不调用next，管道就会被终止，也不会有处理器或中间件做后续处理
+如果不调用next，应该发送一个响应到客户端（res.send res.json res.render）
+如果不这么做客户端会被挂起，被导致超时
+
+调用了next，一般不宜发送响应到客户端
+如果发送了，管道中后续的中间件或路由处理器还会执行，但她们发送的任何信息都会被忽略
+
+
+
+
+
+用集群向外扩展可以实现单台服务器的性能最大化
+
+如果需要多台服务器可能需要实现并行，一台代理服务器，跟一般用于访问的外部网络的代理区别，成为反向代理或正向代理
+
+在代理领域两个优秀
+nginx和HAProxy
+
+小的基于node代理服务器 proxy/node-http-proxy
+
+生成环境而言 建议使用nginx或HAProxy
+
+配置了一台代理服务器，告知express使用了代理
+app.enable("trust proxy");
+确保req.ip req.protocol req.secure反映客户端和代理服务器之间连接的细节
+而不是客户端和应用之间
+req.ips会是一个数组，表明原始客户端ip和所有中间代理的名称或ip地址
+
+
+网站监控
+
+
+
+
+

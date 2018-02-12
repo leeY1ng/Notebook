@@ -1,0 +1,3016 @@
+app.use(function(req,res,next){
+	console.log("processing request for "+req.url+"!");
+	next();
+})
+app.use(function(req,res,next){
+	console.log("terminating for playing...");
+	res.send("thank for playing!");
+})
+app.use(function(req,res,next){
+	console.log("whoops, i'll never get called!");
+})
+
+
+
+var app = require("express")();
+
+app.use(function(req,res,next){
+	console.log("\n\nALLWAYS");
+	next();
+})
+
+app.get("/a",function(req,res){
+	console.log("/a:路由终止");
+	res.send("a");
+})
+app.get("/a",function(req,res){
+	console.log("/a 永远不会调用");
+})
+
+app.get("/b",function(req,res,next){
+	console.log("/b 路由未终止");
+	next();
+})
+
+app.use(function(req,res,next){
+	console.log("sometimes");
+	next();
+})
+
+app.get("/b",function(req,res,next){
+	console.log("/b (part2): push the mistake");
+	throw new Error("b fail");
+})
+app.use("/b",function(err,req,res,next){
+	console.log("/b test the mistake and pass it ");
+	next(err);
+})
+
+app.get("/c",function(err,req){
+	console.log("/c push the mistake");
+	throw new Error("c fail");
+})
+
+app.use("/c",function(err,req,res,next){
+	console.log("test the mistake and not pass it");
+	next();
+})
+
+app.use(function(err,req,res,next){
+	console.log("test the mistable havent been done"+err.message);
+	res.send("500 - server error");
+})
+
+app.use(function(req,res){
+	console.log("未处理的路由");
+	res.send("404 - not found");
+})
+
+app.listen(3000,function(){
+	console.log("listening the port 3000");
+})
+
+中间件必须是一个函数
+app.use(express.static);/不会期望中的工作 错误写法
+console.log(express.static()); /output "function" 会返回函数的函数
+
+模块也可以输出一个函数 这个函数可以直接用作中间件
+module.exports = function(req,res,next){
+	var cart = req.session.cart;
+	if(!cart){
+		return next();
+	}
+	if(cart.some(function(item){
+		return item.product.requiresWaiver;
+	})){
+		if(!cart.warnings){
+			cart.warnings=[];
+		}
+		cart.warnings.push("onr or more of your" + 
+			"selected tours");
+	}
+	next();
+}
+
+更常见的做法是输出一个以中间件为属性的对象
+将所有购物车验证代码放到
+
+module.exports = {
+	checkWaivers:function(req,res,next){
+		var cart = req.session.cart;
+		if(!cart){
+			return next();
+		}
+		if(cart.some(function(i){
+			return i.product.requiresWaiver;
+		})){
+			if(!cart.warnings){
+				cart.warnings = [];
+			}
+			cart.warnings.push("noe or more of your"+
+				"selected tours requires a waiver");
+		}
+		next();
+	},
+	checkGuextCounts:function(req,res,next){
+		var cart = req.session.cart;
+		if(!cart){
+			return next();
+		}
+		if(cart.some(function(item){
+			return item.guests > item.product.maximumGuests;
+		})){
+			if(!cart.errors){
+				cart.error = [];
+			}
+			cart.errors.push("one or more of your"+
+				"cant accmomodate the number of guests you");
+		}
+		next();
+	}
+}
+
+然后引入中间件：
+var cartValidation = require("./lib/cartValidation.js");
+app.use(cartValidation.checkWaivers);
+app.use(cartValidation.checkGuextCounts);
+
+语句 return next()提前终止中间件
+expess not hope the middle-ware return any value and 
+not use the return value do any thing
+so this is just the "next()" for short  "next();return;";
+
+常用中间件
+其他中间件从connect中分离出 只保留了static
+
+剥离中间件让express不再维护那么多依赖 并且这些独立的项目
+可以独立于express并发展成熟
+
+建议一起安装connect
+
+basicAuth(app.use(connect.basicAuth)());
+provide the basic secure;
+and u just use the basic-auth by the https
+(otherwise account and password 通过明文传输)
+需要快又容易的东西且在使用https时，用basic-auth
+
+body-parser
+只连入json和urlencoded的中间件，除非单独使用json或
+urlencoded 使用这个包
+
+json
+json编码的请求体 
+application/x-www-form-urlencoded 可以被urlencoded解析
+
+urlencoded
+解析媒体类型application/x-www-form-urlencoded的请求体
+处理表单和ajax常用的方式
+
+multipart废弃
+使用busboy或formidable代替它
+
+cookie.parser
+提供对cookie的支持
+
+cookie-session
+提供cookie存储的会话支持 （不推荐）
+
+express-session提供会话id
+默认在内存里，不适用于生产环境并且可以配置为使用数据库存储
+
+
+csurf 
+防范跨域请求伪造csrf攻击
+要使用会话必须放在express-session中间件的后面
+目前等于 connect.csrf 但简单连入并不能防范 18章
+
+directory
+提供静态文件的目录清单支持，如果不需要目录清单，
+不需要这个中间件
+
+errorhandler
+为客户端提供栈追踪和错误消息
+建议不在生产环境中连入 会暴露细节 安全和隐私问题
+
+static-favicon
+提供favicon出现在浏览器上的图标 不是必须
+在static目录放入favicon。ico图标 这个中间件可以
+提升性能 尽可能放在中间件栈的上面
+
+morgan
+提供自动日志记录文件，所有请求都会记录，详情20章
+
+method-override
+提供对x-http-method-override的支持
+允许浏览器假装使用除get和post以外的http方法 对调试有帮助
+
+query
+解析查询字符串并将其变为请求对象上的query属性
+express隐含连入不需要手动
+
+response-time 向响应中添加X-Response-Time头
+提供以毫秒为单位的响应时间，一般在做性能调优时才会
+需要这个中间件
+
+
+static
+提供对静态(public)文件的支持 可以连入多次并指定不同的目录
+16章
+
+vhost
+虚拟主机 使子域名在express中更容易管理 14章
+
+第三方中间件
+目前没有第三方中间件的索引目录 
+npm搜索express connect middleware 可以得到
+
+
+11、发送邮件
+Nodemailer第三方模块
+
+smtp简单邮件传输协议
+
+msa邮件提交代理
+mta邮件传输代理
+
+接收邮件
+simpleSMTP haraka
+
+邮件头
+邮件消息分为头部和主体
+
+头部包含基本信息 发送人 收信人 接收日期 主题
+发送邮件必须有from地址
+
+邮件格式
+可是普通文本 也可以是html
+
+html邮件
+
+how-to-code-html-emails
+html email boilerplate
+
+测试litmus
+安全：头、粗体、斜体文本、水平分割线、图片链接
+
+Nodemailer第三方模块
+
+提供了大多数邮件服务的快捷方式
+
+gmail,...
+
+如果mas没有出现在列表上，需要直接连接smtp服务器
+
+var mailTransport = nodemailer.createTransport("SMTP",
+{
+	host:"smtp.meadowlarkTravle.com",
+	secureConnection:true,
+	auth:{
+		user:credentials.meadowlarkSmtp.user,
+		pass:credentials.meadowlarkSmtp.password
+	}
+})
+
+发送邮件
+
+mailTransport.sendMail({
+	from:'"Meadowlark Travel"<info@meadowlarkTravle.com>',
+	to:"joecustomer@gmail.com",
+	subject:"your meadowlark travel tour",
+	text:"thank you for booking your trip with meadowlark"
+
+},function(err){
+	if(err){
+		console.error("unable to send mail"+error);
+	}
+})
+
+
+没有错误也不一定邮件成功发给了接收者
+只有跟msa通信出现问题才会设置回调函数的err参数
+（网路错误或者授权错误）
+如果msa不能投递邮件 会收到投递给msa账号的失败邮件
+
+需要系统自动判断是否投递成功
+1\ 使用支持错误报告的msa
+2\ 使用直接投递 跳过msa 不推荐 复杂方案
+
+将邮件发送给多个接收者
+使用逗号隔开
+
+mailTransport.sendMail({
+	from:'"Meadowlark Travel"<info@meadowlarkTravle.com>',
+	to:'joecustomer@gmail.com,joe@gmail.com,haha<haha@qq.com>',
+	subject:"your meadowlark travel tour",
+	text:"thank you for booking your trip with meadowlark"
+
+},function(err){
+	if(err){
+		console.error("unable to send mail"+error);
+	}
+})
+观察msa的多发限制
+
+多条消息 多个接收者
+
+var recipientLimit = 100;
+for(var i =0;i<argeRecipientList.length/recipientLimit;i++){
+	mailTransport.sendMail({
+	from:'"Meadowlark Travel"<info@meadowlarkTravle.com>',
+	to:largeRecipientList.slice(i*recipientLimit,i*(recipientLimit+1).join(",")),
+	subject:"your meadowlark travel tour",
+	text:"thank you for booking your trip with meadowlark"
+
+},function(err){
+	if(err){
+		console.error("unable to send mail"+error);
+	}
+})
+}
+
+
+发送批量邮件的最佳选择
+mailChimp  
+Campaign Monitor
+
+发送html邮件
+mailTransport.sendMail({
+	from:'"Meadowlark Travel"<info@meadowlarkTravle.com>',
+	to:largeRecipientList.slice(i*recipientLimit,i*(recipientLimit+1).join(",")),
+	subject:"your meadowlark travel tour",
+	html:"<h1>Meadowlark Travel </h1>",
+	text:"thank you for booking your trip with meadowlark"
+
+},function(err){
+	if(err){
+		console.error("unable to send mail"+error);
+	}
+})
+工作量很大，不推荐
+nodemailer可以将html翻译成普通文本
+
+mailTransport.sendMail({
+	from:'"Meadowlark Travel"<info@meadowlarkTravle.com>',
+	to:largeRecipientList.slice(i*recipientLimit,i*(recipientLimit+1).join(",")),
+	subject:"your meadowlark travel tour",
+	html:"<h1>Meadowlark Travel </h1>",
+	generateTextFromHtml:true
+
+},function(err){
+	if(err){
+		console.error("unable to send mail"+error);
+	}
+})
+
+html邮件中的图片
+最好不要直接放图片
+最好在静态资源中文件夹中给邮件图片一个专门位置
+将同时用在网站和邮件中的资源分开
+16章介绍一些平滑地从开发转向生成环境的技术
+
+用视图发送html邮件
+避免将html字符串放到js中
+
+.
+.
+.
+12、与生产相关的问题
+
+express对不同执行环境的支持，扩展网站的方法，监控网站的健康
+如何模拟生成环境来进行测试和开发 如何执行压力测试
+
+执行环境
+在生成、开发或测试模式中运行应用程序的方法
+可以按照自己的想法创建很多种不同的环境
+开发 生成和测试是标准环境
+
+尽管app.set("env","production")可以指定执行环境
+但最好不要这么做 不管什么情况，程序会一直运行在这个环境
+可能在一个环境中执行然后切换到另一个环境
+
+
+用环境变量NODE_ENV指定执行环境更好
+调用app，get("env")
+报告在哪种环境下运行
+
+http.createServer(app).listen(app.get("port"),function(){
+	console.log("express started in "+app.get("env") +
+		"mode on http://localhost"+app.get("port")+
+		"press strc+c to terminate");
+});
+
+
+没有指定
+开发模式就是默认模式
+将其放到生成环境下
+export NODE_ENV=production
+
+cygwin：
+NODE_ENV=production node meadowlark.js
+当服务器终止，环境变量NODE_ENV还是原来的值
+
+生成模式下启动express 有些组件不适合生存模式下使用的警告信息，
+connect.seesion 使用了内存存储，不适合生生产环境，第13章会切换到数据库存储
+警告就会消失
+
+
+环境特定配置
+在生产环境下，视图缓存会默认启用 7章
+
+
+环境特定配置
+尽量缩小开发，测试和生产环境之间的差异应该保守的使用这个
+功能
+如果程序是高度数据库驱动，不想干扰生成数据库，并且
+这个环境特定配置的良好候选用途
+更加详细的日志，想在开发时记录很多东西都没必要在
+生产环境中记录
+
+给程序添加日志
+morgan输出彩色文本
+express-logger 支持日志循环
+
+switch(app.get("env"){
+	case "development":
+		app.use(require("morgan")("dev"));
+		break;
+	case "production":
+		app.use(require("express-logger")({
+			path:_dirname+"/log/request.log"
+		}));
+		break;
+})
+
+想测试日志，可以在生产模式下运行程序
+(NODE_ENV=production node meadowlark.js)
+想实际看看日志的循环功能
+可以编辑成node_modules/express-logger/logger.js
+修改变量defaultIterval 从24h改成10s
+
+_dirname把请求日志存在项目自身的子目录下，
+应该将日志文件添加到.gitignore文件中
+或将日志文件放到/var/log一个子目录下，
+13章更加健壮的环境特定配置范例
+
+扩展你的网站
+向上\外扩展：
+上：服务比变得更强、更快cpu更多内核 更多内存
+外：更多服务器（收益率更高）
+
+设计向外扩展的网站重要的是持久化
+
+大部分持久化通过写入普通文件来实现
+服务器做了负载均衡，一般请求由一台服务器处理，另一半由
+另一台服务器处理
+除非所有服务器都能访问到那个文件系统，否则不应该用本地文件
+系统做持久化（例外：只读数据：日志和备份）
+将表单提交的数据备份到本地普通文件中，以防数据库连接失效
+一旦数据库中断，要到每个服务器上收集文件，但不会破坏文件
+
+
+应用集群扩展
+简单的 单服务器形式向外扩展
+
+也可以为系统上的每一个内核创建一个独立的服务器
+优点：
+1、实现给定服务器性能的最大化（硬件或虚拟机）
+2、在并行条件下测试程序的低开销方式
+
+meadowlark.js
+
+function startServer(){
+	http.createServer(app).listen(app.get("port"),function(){
+		console.log("express started in "+app.get("env")+
+			"mode on http://localhost"+app.get("port")+
+			"press control+c to terminate");
+	});
+}
+
+if(require.main === module){
+	startServer();
+} else {
+	module.exports = startServer;
+}
+
+
+直接运行脚本时
+require.main === module 是true
+如果是false
+表明脚本是require加载进来
+
+
+meadowlark_cluster.js
+
+在这个js执行时，
+或者在主线程的上下文中（node meadowlark_cluster.js执行）
+或在工作线程的上下文中（node集群系统中执行）
+属性 cluster.isMaster 和 cluster.isWorker 决定了你运行在哪个
+上下文中，
+运行这个脚本时，是在主线程模式下运行的，
+并且用 cluster.fork 为每个系统中每个cpu启动了一个工作线程，
+监听了工作线程的exit的事件，重新繁衍死掉的工作线程
+
+最后在else句中处理工作线程的情况，
+将 meadowlark.js配置为模块使用，只需要引入并立即调用它
+（将它作为一个函数输出并启动服务器）
+
+现在启动新的集群化服务器
+node meadowlark_cluster.js
+
+
+如果是虚拟机，将vm配置为多个cpu
+
+在多核系统上，可以看到一些工作线程启动，
+不同工作线程处理不同请求的证据
+在路由前 添加以下中间件：
+app.use(function(req,res,next){
+	var cluster = require("cluster");
+	if(cluster.isWorker){
+		console.log("Worker %d received request",cluster.worker.id;);
+	}
+})
+
+处理未捕获异常
+
+在node异步世界里
+未捕获异常需要关注的问题
+
+app.get("/fail",function(req,res){
+	throw new Error("nope");
+})
+
+在express执行路由处理器时，将它们封装在一个try/ catch
+不是一个真正的未捕获异常，不会引起太多问题
+express会在服务端记录异常，并且访问者会得到一个丑陋的栈输出
+服务器是稳定的，其他请求正确处理
+
+提供一个好的错误页面，可以创建文件 500.handlebars
+在所有路由后面添加错误处理器：
+app.use(function(err,req,res,next){
+	console.error(err.stack);
+	app.status(500).render("500");
+})
+
+提供定制的错误页面总归是好的方法
+当错误出现时 不仅在用户面前显得更专业，可以让你采取行动
+
+例如在错误处理器中发送一封邮件给开发团队，知道网站出错
+这只能用在express可以捕获的异常上
+
+
+更糟：
+
+app.use("/epic-fail",function(req,res){
+	process.nextTick(function(){
+		throw new Error("Kaboom!");
+	});
+})
+
+将整个服务器搞垮，
+不仅没有显示错误信息，将服务器宕机 不能继续处理请求
+
+settimeout是异步执行的 抛出异常的函数推迟到node空闲时才会执行
+
+当node空闲时，可以执行这个函数，已经没有其所服务的请求上下文了
+已经没有资源 ，直接关掉服务器 处于不确定状态
+
+process.nextTick 跟调用没有参数的setTimeOut非常像，
+效率更高 一般不会在服务端代码中使用
+多异步执行的任务，数据库访问，文件系统访问 网络访问
+
+如果出现了未捕获的异常 关闭服务器
+或者 故障转移机制：使用集群 
+如果是运行在集群模式下，一个线程死掉了 主线程会繁衍
+另外一个线程取代他
+（不需要多个工作的线程，有一个工作线程的集群就可以）
+
+关闭服务器：
+1、uncaughtException事件
+
+2、域（推荐、较新的方式）
+一个域就是一个执行上下文，会捕获在其中发生的错误，
+有域，可以在错误处理上更灵活，不再是只有一个全局的未捕获异常处理器，
+可以有很多域，可以在处理易出错的代码时创建新域
+
+每一个请求在域中处理是好的做法，
+这样就可以追踪那个请求中所有的未捕获错误并做出相应的响应
+（正常关闭服务器）
+添加一个中间件可以轻松的满足这个要求
+
+app.use(function(req,res,next){
+	//为请求创建一个域
+	var domain = require("domain").create();
+
+	//处理这个域中的错误
+	domain.on("error",function(err){
+		console.error("domain error caught\n",err.stack);
+	
+	try {
+		//在5秒内进行故障保护，关机
+		setTimeOut(function(){
+			console.error("failasfe shutdown");
+			process.exit(i);
+		},5000);
+		//从集群中断开
+		var worker = require("cluster").worker;
+		if(worker){
+			worker.disconnect();
+		}
+
+		//停止接收新请求
+		server.close();
+
+		try{
+			//尝试使用express错误路由
+			next(err);
+		}catch(err){
+			//如果express错误路由失效，尝试返回普通文本响应
+			console.error("express error mechanism failed"+
+				"\n,",err.stack);
+			res.statusCode = 500;
+			res.setHeader("content-type","text/plain");
+			res.end("server error");
+		}
+	}catch(err){
+		console.error("unable to send 500 response.\n",err.stack);
+	};
+});
+//向域中添加请求和响应对象
+domain.add(req);
+domain.add(res);
+
+//执行该域中剩余的请求链
+domain.run(next);
+
+});
+
+//其它中间件和路由放在这里
+
+var server =http.createServer(app).listen(app.get("port"),function(){
+	console.log("listening opn port %d",app.get("port"));
+})
+
+先创建一个域，附着一个错误处理器
+只要域中出现未捕获错误就调用这个函数
+
+然后试图给任何处理中的请求以恰当的响应，然后关闭服务器
+根据错误的性质，可能无法响应处理中的请求
+首先要先确立关闭服务器的截至时间
+例子中：
+
+允许服务器在5秒内响应处理中的请求，数值取决于程序，
+如果程序有长请求，应该给予更多的时间
+一旦确立的截至时间就会从集群中断开，（如果在集群中）
+以防止集群给我们分配更多的请求，然后明确告诉服务器
+不在接收新的连接
+
+最后试图 传到错误处理路由 (next(err))来响应产生错误的请求
+
+如果那会抛出错误，退回去用普通的node api响应，
+如果其他的全部失败了，将会记录错误（客户端无法响应，超时）
+
+一旦设置好未处理异常处理器
+就把请求和响应对象添加到域中（允许对象上发生的错误在域中处理）
+最后，在域的上下文中  运行  管道中的下一个中间件；
+
+有效的运行域中管道里的所有中间件，next()调用是链起来的
+
+
+
+如果只有一个工作线程，想立即关闭以正在进行中的所有会话为代价
+如果有多个工作线程，在关闭前有回旋余地，让垂死的工作线程服务剩余的请求
+
+“the 4 keys to 100% uptime with node.js”
+在node上运行fluencia spanishDict 用域是保持node正常运行的根本
+
+
+
+用多台服务器扩展
+
+用集群向外扩展可以实现单台服务器
+
+
+网站监控
+第三方运行
+uptimerobot  
+pingdom site24x7
+
+应用程序故障
+
+关键字监控或应用程序故障
+
+压力测试
+（负载测试）应对大量并发请求
+loadtest 
+
+
+13、持久化
+
+当服务器宕机断电升级等数据可以保存下来
+
+文档数据库
+
+文件系统的持久化
+node通过fs实现文件系统持久化
+缺点：扩展性不好 多个服务器无法访问一个文件系统
+扁平文件没有内在结构
+应该用数据库而不是文件系统做数据排序
+
+将二进制文件存在数据库中或基于云的存储服务
+
+
+一般来说 你不能信任用户上传的任何信息，他可能是攻击你网站的载体
+
+用浏览器提供的name属性命名这个文件也是有风险的，
+可能会擦汗如某些特殊字符来滥用
+保证这段代码完全安全，会给这个文件一个随机名称，只接受扩展名
+
+
+云持久化
+
+将一个文件保存到亚马逊云上
+var filename = "customerUpload.jpg";
+aws.putObject({
+	ACL:"private",
+	Bucket:"uploads",
+	Key:filename,
+	Body:fs.readFileSync(_dirname+"/tmp/"+filename);
+});
+
+微软azure
+
+var filename = "customerUpload.jpg";
+var blobService = azure.createBlobService();
+blobService.putBlockBlobFormFile("uploads",filename,_dirname+"/tmp/"+filename);
+
+
+数据库持久化
+
+关系型数据管理系统
+oracle mysql sqlServer
+
+nosql数据库：
+文档数据库：善于存储对象，适合node和js
+
+键-值数据库：对于数据模式，轻松映射到键值对的程序
+
+以文档数据库为例mongoDB
+
+关于性能
+
+用并发来扩展性能（关系型数据库也支持并发）
+<<MongoDB权威指南>>
+
+设置mongoD实例的困难之处随操作系统而变化
+为了避开各种问题 建议使用mongodb托管服务mongoDBlab
+
+
+底层mongodb驱动，想用对象文档映射odm
+官方支持的mongodb odm是mongoose
+
+
+创建模式和模型
+
+var mongoose = require("mongoose");
+var vacationSchema = mongoose.Schema({
+	name:String,
+	slug:String,
+	category:String,
+	sku:String,
+	description:String,
+	priceInCents:Number,
+	tags:[String],
+	inSeason:Boolean,
+	available:Boolean,
+	requiresWaiver:Boolean,
+	maximumGuests:Number,
+	notes:String,
+	packagesSold:Number
+});
+
+
+Vacation.find(function(err,vacations){
+	if(vacations.length){
+		return;
+	};
+	new Vacation({
+		name:"Hood River Day Trip",
+		slug:"hood-river-day-trip",
+		category:"Day Trip",
+		sku:"HR199",
+		description:"Spned a day sailing on the land",
+		proceInCents:9995,
+		tags:["day trip","hood river","sailing","windsurfing","breweries"],
+		inSeason:true,
+		maximumGuests:16,
+		available:true,
+		packagesSold:0
+	}).save();
+})
+ 
+ find方法：会查找数据库中所有vacation实例
+ 将返回结果传给回调函数调用
+避免重复添加初始数据
+
+如果数据库中已经有，就是已经添加过了
+在第一次执行时，find返回的是空列表
+
+继续创建两个度假产品，调用save方法，保存到数据库中
+
+
+获取数据
+
+
+mongodb不一定是会话存储的最佳选择
+流行易用的会话持久方案 redis
+connect-redis
+www.npmjs.org/package/connect-redis
+
+14、路由
+
+信息架构概念IA
+内容的概念性组织 考虑路由之前 有一个可扩展的IA
+优点：
+决不在url中暴露技术细节
+避免在url出现无意义信息
+避免无谓的长url
+单词分隔符保持一致
+不使用空格或不可录入字符
+在url中使用小写字母
+
+路由和SEO
+不要为了提高排名塞关键字到url中 
+
+子域名
+
+子域名最好留给REST API或者管理界面
+ 子域名分隔页面会影响seo
+
+express中的路由机制 默认不会把子域名考虑在内
+想分开处理子域名 可以用vhost包 虚拟主机
+
+
+路由处理器是中间件，只匹配给定的路径
+app.get("/foo",...) 
+特殊的中间件，向下会有next方法传入
+
+同一个路由有两个处理器，一般第一个会赢
+
+或者将 app.get("/foo",
+			function(req,res,next){
+				if(Math.random()<0.33) return next();
+				res.send("red");
+			},
+			function(req,res,next){
+				if(Math.random()<0.5) return next();
+				res.send("green");
+			},
+			function(req,res){
+				res.send("blue");
+			}
+		)
+
+
+特殊优惠更换
+
+创建一个函数，将 specials注入res.locals属性中
+
+function specilas(req,res,next){
+	res.locals.specials = getSpecialsFromDatabase();
+	next();
+}
+app.get("/page-with-specials",specials,function(req,res){
+	res.render("page-with-specials");
+});
+
+实现授权机制 用户授权代码会设定一个会话变量 
+req.session.authorized 像下面这样做一个可重复使用的授权过滤器
+
+function authorize(req,res,next){
+	if(req.session.authorized) return next();
+	res.render("not-authorized");
+}
+app.get("/secret",authorize,function(){
+	res.render("secret");
+});
+app.get("/sub-rosa",function(){
+	res.render("sub-rosa");
+});
+
+路由路径和正则表达式
+
+app.get("/user(name)?",function(req,res){
+	res.render("user");
+});
+
+app.get("/khaa+n",function(req,res){
+	res.render("khaaan");
+});
+or
+
+app.get(/crazy|mad(ness)?|Lunacy/,function(req,res){
+	res.render("madness");
+});
+
+日常中很少使用正则路由 路由参数经常要用
+
+将变量参数放到路由中成为其一部分
+
+
+
+参数在url中时
+/path/:id,参数在 req.params.id中
+/path?id=xx,参数在 req.query.id中
+用json body 或者form 表单传参时参数在 req.body 中
+
+
+
+var staff = {
+	mitch:{bio:"mitch is the man to have at your back"},
+	madeline:{bio:"madeline is our oregon expert"},
+	wlt:{bio:"walt is our oregon coast expert"}
+};
+app.get("/staff/:name",function(req,res){
+	var info =staff[req.params.name];
+	if(!info){
+		return next();// 最终会到404
+	}
+	res.render("staffer",info);
+});
+
+:name 跟任何字符串匹配，不包括反斜杠
+将name一起放到 req.params 对象中 经常用到这个参数（rest api）
+路由中可以有多个参数
+var staff = {
+	portlan :{
+		micth:{bio:"mitch your back"},
+		madeline:{bio:"madeline oregon expert"}
+	},
+	bend:{
+		walt:{bio:"walt coast exert"}
+	}
+}
+
+app.get("/staff/:city/:name",function(req,res){
+	var info = staff[req.params.city][req.params.name];
+	if(!info){
+		return next();// 最终会到404
+	};
+	res.render("staffer",info);
+});
+
+
+组织路由
+
+在主程序文件中定义所有路由导致文件一直增长
+不利于功能的分离
+
+组织路由的四条指导原则
+1、给路由处理器命名函数
+	小型网站无可厚非，随着网站的增长变得很笨重
+2、路由不应该神秘
+	将所有的路由放到一个文件中
+	根据功能区域将路由分开
+3、路由组织应该是可扩展的
+	几十个路由放到一个文件中没问题 上百个？保证确保有增长空间
+4、不要忽视自动化的基于视图的路由处理器
+	如果网站是由很多静态和url页面组成
+	为了减少不必要的重复代码，考虑使用自动化的基于视图的路由处理器
+
+
+在模块中声明路由
+
+组织路由的第一步将它们都放到自己的模块中，
+将模块做成一个函数，返回包含 方法 和 处理器 属性的对象数组
+例如：
+var routes = require("./routes.js")();
+routes.forEach(function(route){
+	app[route.method][route.hanler];
+});
+适合动态储存路由 比如在数据库或json文件中
+如果不需要 建议将app实例传给模块，让它添加路由
+例如：
+module.exports = function(app){
+	app.get("/",function(req,res){
+		app.render("home");
+	});
+}
+例如/about 处理器中的fortune 在上下文中没有
+可以添加必要的引入，
+在 meadowlark.js中直接引入路由
+require("./routes.js")(app);
+
+按逻辑对处理器分组
+
+要满足第一条指导原则需要找地方放置那些处理器
+更极端的做法 给每一个处理器添加一个js文件
+
+将功能分组到各自的文件中
+handlers/main.js 放首页处理器，
+/about 处理器 以及所有不属于任何其他逻辑分组的处理器，
+handlers/vacations.js 放跟度假相关的处理器
+
+
+handlers/main.js
+var fortune = require("../lib/fortune.js");
+exports.home = function(req,res){
+	res.render("home");
+}
+exports.about = function(req,res){
+	res.render("about",{
+		fortune: fortune.getFortune(),
+		pageTestScript:"/qa/tests-about.js"
+	});
+}
+接下来修改 routes.js 使用它
+
+var main = require("./handlers/main.js");
+module.exports = function(app){
+	app.get("/",main.home);
+	app.get("/about",main.about);
+}
+如果routes变得笨重 可以用相同的技术将app传给另一个模块
+
+自动化渲染视图
+网站有很多内容，但功能呢不多，不必要给每一个视图添加一个路由
+
+添加文件 views/foo.handlebars 然后就可以通过foo访问了
+在应用程序文件中，在404之前 添加如下中间件
+var autoViews = {};
+var fs = require("fs");
+ 
+app.use(function(req,res,next){
+	var path = req.path.toLowerCase();
+	//检查缓存，如果它在那里，渲染这个视图
+	if(autoViews[path]){
+		return res.render(autoViews[path]);
+	}
+	//如果不在缓存里，看看能否有handlebars相匹配
+	if(fs.existsSync(__dirname + "/views" + path+".handlebars")){
+		autoViews[path] = path.replace(/^\//,"");
+		return res.render(autoViews[path]);
+	}
+	//没发现视图，转到404
+	next();
+});
+
+现在只要添加handlebars 到 views 目录下就可以渲染在
+相应的路径上了
+常规路由会避开这一机制，因为 把自动视图处理器放在了其他路由的后面
+如果有个路由foo渲染了不同的视图，那它会取得优先权
+
+
+其他路由的组织方式
+
+最流行的两种路由组织方式是
+1、命名空间路由
+	很多路由相同的前缀
+	node模块 express-namespace 
+2、随机应变路由
+	基于一个对象中的方法自动添加路由 
+	如果网站的逻辑是天然面向对象
+	node包 express-resource
+
+路由在项目中很重要，如果基于模块的路由觉得不太适合你，
+可以看看express-namespace or express-resource
+
+
+15
+REST API 和 JSON
+
+本章给应用添加一个web服务 通过http访问的应用程序编程界面
+REST风格的服务
+REST 表述性状态传输
+
+客户端和服务端的无状态连接
+服务可以被缓存 可以被分层（使用一个rest api可能还有其他rest api在它下面）
+
+因为http限制，很难创建出非rest风格的api
+比如想办法确立状态
+
+
+json和xml
+
+提供api关键是有相通的语言
+通信部分，必须用http方法跟服务器通信
+
+我们的api
+
+在实现之前，将api规划好:
+
+GET /api/attractions
+获取景点 以lat lng radius为查询字符串参数 返回景点列表
+
+GET /api/attractions/:id
+根据id返回一处景点
+
+POST /api/attraction
+以lat lng name description email为请求体添加新的景点
+新的景点会进入一个待审批队列
+
+PUT /api/attraction/:id
+更新一处已有的景点 参数为景点的id lat lng name description email
+更新会进入待审批队列
+
+DEL /api/attraction/:id
+删除景点 参数为景点id email reason 删除会进入待审批队列
+
+
+我们有很多描述api的方式 这里选择用http方法和路径的组合来区分api调用
+并用查询字符串和请求主体参数混合的方法传递数据
+
+用方法全都相同的不同路径 也可以用同一种方式传递数据
+例如
+ 在url中用查询参数而不是查询字符串传递所有必须的信息
+ get/api/attractions/:lat/:lng/:radius 
+ 为了避免出现超长的url 建议用请求主体传递大块数据
+
+
+ api错误报告
+
+ http api错误报告通过http状态码实现的，
+ 但并不是所有事情都可以通过状态码来反馈 譬如查询id不存在
+
+错误分为：
+灾难性错误：服务器状态不稳定或不可知错误
+	一般是未处理异常导致 
+	重启服务器，理想情况下 所有挂起的请求都会收到响应码500
+	如果故障很严重，服务器根本无响应
+
+
+可恢复的服务器错误：不需要服务器重启
+	服务器未预料的错误条件导致（例如不可用的数据库连接）
+	问题暂时或者永久 返回相应码500
+
+客户端错误:客户端的错误，参数漏掉或者参数无效
+	可以用 状态码200 并在响应体中描述错误
+	或者 用额外恰当状态码描述错误（建议404）
+	400 错误的请求 401 未授权
+	响应体中包含错误的具体情况
+	错误消息包含文档的链接
+（method-override可以模拟不同的http方法）
+
+
+跨域资源共享
+
+如果你发布一个api 想让别人能够访问这个api 
+这会导致跨站http请求
+收到同源策略的限制 限制可以从哪里加载脚本
+协议 域 端口必须匹配 其他网站不可能使用你的api
+ 所以有了CORS 跨域资源共享
+
+cors允许针对个案解除这个限制 甚至允许你列出具体哪些域可以访问这个脚本
+cors通过access-control-allow-origin响应头实现
+express中 cors包 
+启用 app.use(require("cors")());
+
+基于同源api存在的原因，防止攻击 建议只在必要的时候应用cors
+对于我们情况而言，想要输出整个api 将cors限制以"/api"开头的路径上
+
+app.use("api",require("cors")());
+
+
+我们的数据存储
+
+用mongoose给数据库中的景点模型创建模式
+
+var mongoose = require("mongoose");
+
+var attractionSchema = mongoose.Schema({
+	name:String,
+	description:String,
+	location:{lat:Number,lng:Number},
+	history:{
+		event:String,
+		notes:String,
+		email:String,
+		date:Date
+	},
+	updateId:String,
+	approved:Boolean
+});
+var Attraction = mongoose.model("Attraction",attractionSchema);
+module.exports = Attraction;
+
+更新需要审批，不能让api直接更新原始记录，
+办法：创建一个指向原始记录的新纪录，一旦这个记录得到批准
+可以用更新记录中的信息更新原始记录，并删除这条更新记录
+
+我们的测试
+
+如果用了get之外的http动词，测试可能是个麻烦 
+浏览器只知道如何发起get请求以及表单发起post请求
+解决办法：postman插件
+最好有自动化测试：在写api测试之前 需要一种实际调用api的办法
+：node包 restler
+
+
+
+对获取的景点测试，先添加了一个景点
+原因：
+1、实战性 即便测试在文件中的出现顺序是那样 但js有异步性，
+	不能保证api也按照那个顺序执行，
+2、原则性 所有测试完全独立 不相互依赖
+
+
+调 rest.get 或 put方法 将url传给它 以及一个有data属性的对象 用作请求体
+这个方法返回一个发起时间的promise
+当在应用程序中使用restler时，可能也想监听其他事件比如fail 可以查看文档
+
+
+用express 提供api
+
+express擅长提供api （node模块提供额外功能）
+
+var Attraction = require("./model/attraction.js");
+
+app.get("/api/attraction",function(req,res){
+	Attraction.find({approved:true},function(err,attraction){
+		if(err){
+			return res.send(500,"error occurred: database error");
+		}
+		res.json(attraction.map(function(a){
+			return {
+				name:a.name,
+				id:a._id,
+				description:a.description,
+				location:a.location
+			}
+		}));
+	});
+});
+
+app.post("/api/attraction",function(req,res){
+	var a = new Attraction({
+		name:req.body.name,
+		description:req.body.description,
+		location:{lat:req.body.lat,lng:req.body.lng},
+		history:{
+			event:"created",
+			email:req.body.email,
+			date:new Date()
+		},
+		approved:false
+	});
+	a.save(function(err,a){
+		if(err){
+			return res.render(500,"error occurred:databse error");
+		}
+		res.json({id:a._id});
+	});	
+});
+
+app.get("/api/attraction/:id",function(req,res){
+	Attraction.findById(req.params.id,function(err,a){
+		if(err){
+			return res.send(500,"error occurred:databse error");
+		}
+		res.json({
+			name:a.name,
+			id:a._id,
+			description:a.description,
+			location:a.location
+		});
+	});
+});
+
+返回景点时，不是直接返回从数据库返回来的模型
+这样会暴露内部实现细节 
+相反，选出所需信息构造一个新的对象返回
+
+res.json([body]) 发送一个json的响应
+这个方法和将一个对象或者一个数组作为参数传递给res.send()方法的效果相同
+https:\/\/segmentfault.com/q/1010000009000325/a-1020000009003036
+
+
+
+使用rest插件
+
+只用express写api很容易
+用rest插件有些优势 可以用connect-rest让api面向未来 
+
+api 不应该跟网站的常规路由 (确保没有创建任何"/api"开头的网站路由)
+建议将api路由放在网站路由后面，connect-rest 模块会检查每一个请求，
+向请求对象中添加属性，还会做额外的日志记录，
+将它放在网站路由后面更好，但要在404处理器之前
+
+//网站路由在这
+
+//在这里用 rest.VERB 定义api路由
+
+//api配置
+
+var apiOptions = {
+	context:"/api",
+	domain:require("domain").create()
+};
+
+
+//将api连入管道
+app.use(rest.rester(apiOptions));
+
+//404处理器在这里
+
+
+如果想最大化分离网站和api 可以考虑使用子域名
+比如 api.meadowlark.com    （稍后看到例子）
+
+connect-rest提高了一点效率，可以自动给所有api加上前缀"/api"
+减少了手误的几率，并且可以在需要时轻松修改 根url
+
+添加api方法：
+
+rest.get("/attractions",function(req,content,cb){
+	Attraction.find({approved:true},function(err,attractions){
+		if(err){
+			return cb({error:"internet error"});
+		}
+		cb(null,attractions.map(function(a){
+			return {
+				name:a.name,
+				description:a.description,
+				location:a.location
+			};
+		}))	;
+	});
+});
+
+rest.post("/attraction",function(req,content,cb){
+	var a =new Attraction({
+		name:req.body.name,
+		description:req.body.description,
+		location:{lat:req.body.lat,lng:req.body.lng},
+		history:{
+			event:"created",
+			email:"req.body.email",
+			date:new Date()
+		},
+		approved:false
+	});
+	a.save(function(err,a){
+		if(err){
+			return cb({error:"unable to add attraction"})
+		}
+		cb(null,{id:a._id});
+	});
+});
+
+rest.get("/attraction/:id",function(req,content,cb){
+	Attraction.findById(req.params.id,function(err,a){
+		if(err){
+			return cb({error:"uable to retrieve attraction"});
+		}
+		cb(null,{
+			name:attration.name,
+			description:attraction.description,
+			location:attraction.location
+		});
+	});
+});
+
+rest函数有三个参数 请求，内容对象（请求被解析的主体），回调函数 （异步api调用）
+用了数据库，(异步)
+必须用回调将响应发给客户端（也有同步api，在connect-rest文档中看到）
+
+在创建 一个api时还指定了一个域
+原因：这样可以孤立api错误并采取相应的行动，
+在这个域中检测到错误时，connect-rest会自动发送一个响应码500
+所做的只需要记录并关闭服务器
+
+apiOPtions.domain.on("error",function(err){
+	console.log("API domain error",err.stack);
+	setTimeOut(function(){
+		console.log("Server shutting down after API domain error");
+		process.exit();
+	},5000);
+	server.close();
+	var worker = require("cluster").worker;
+	if(worker){
+		worker.disconnect();
+	}
+});
+
+使用子域名
+api实质上不同于网站 
+很多人选择用子域将api跟网站其余部分分开
+将 meadowlarktravel.com/api
+修改成 api.meadowlark.com
+
+确保中间件vhost安装
+
+可能没有自己的域名服务器，需要用一种手段让express相信你连接了一个子域
+
+直接连入新的vhost创建子域:
+
+app.use(vhost("api.*",rest.rester(apiOptions)));
+
+修改上下文：
+var apiOptions = {
+	context:"/",
+	domain:require("domain").create()
+}
+
+现在所有通过 rest.VERB定义的api路由可以在api子域上调用了
+
+
+16、静态内容
+
+应用程序不会基于每个请求从而去改变资源
+静态内容：
+多媒体
+css(less sass stylus)
+js(送到客户端使用的js是静态文件)
+二进制下载文件(pdf 压缩文件等等)
+
+
+（html 通过路由 创建视图更容易）
+
+性能方面
+
+1、减少请求次数
+	1、合并资源
+		架构和前端问题 
+			将小图片合并到一个子画面中 用css设定偏移量和尺寸
+			只显示图片中需要展示的部分 spritePad服务创建子画面
+
+	2、浏览器缓存
+		会在客户端浏览器中存储通用的静态资源，对减少http请求有帮助，
+		尽管浏览器做了很大努力让缓存尽可能自动化，但也不是完美的
+
+2、缩减内容大小
+	有些技术是无损的 不丢失任何数据就可以实现资源大小的缩减
+	有些技术是有损的 降低静态资源的品质实现资源大小的缩减
+
+	无损技术包括 js css的缩小化 png图片的优化
+	有损技术包括 jpeg和视频的压缩等级 
+
+
+本章中探讨 缩小和打包（减少http请求次数）
+
+使用cdn时一般不用担心cors ，
+但在html中加载外部资源不违反cors原则，
+只有用ajax加载的资源才必须启用cors
+
+
+面向未来的网站
+
+将网站放到生产环境中时，静态资源必须放在互联网中的某个地方
+你可能习惯于将它们放在生成动态的html服务器上，
+
+如果你想让网站的性能最佳 应该希望轻易的将你的静态资源托管给内容发布网络cdn
+ cdn专为提供静态资源而优化的服务器
+ 1、利用特殊头信息，启用浏览器缓存 
+ 2、cdn还可以基于地理位置进行优化 可以从地理位置更接近客户端的服务器发布静态内容
+
+ 给静态资源创建一个抽象层，重新定位它们
+
+ 大部分静态资源都是在html视图中引用的 指向css文件的link元素 指定js文件的script元素
+以及嵌入多媒体的标签
+css中一般也有静态引用 一般是background-image属性 
+js中也会引用静态资源 比如动态修改或插入img标签 或background-image属性
+
+
+静态映射
+
+让静态资源可重定位，对缓存友善的策略核心是映射的概念
+
+关系静态资源的逻辑组织
+
+重点是指定静态资源时让使用这种组织结构变得容易 
+
+
+我们会用 协议 和 相对url 指向静态资源  仅以"//"开头 不会用http:/ 或 https://
+这样浏览器用什么协议都可以 
+cdn必须支持https
+
+归根结底是映射的问题 需要将不太具体的路径映射到更具体的路径
+
+更进一步讲 我们希望可以随意修改映射
+
+在这些例子中，我们实现映射只是在路径开头添了些东西，这些是基准url
+
+你的映射模式可能会更复杂，基本上到极限了
+文件名和路径是相当标准和普遍的内容组织方式，如果偏离这种方式，应该有充分的理由
+
+更有实际意义 更复杂的映射模式案例是 采用资产版本化（稍后）
+
+
+目前坚持使用非常简单的映射模式：只添加基准url
+假定所有静态资源都是以斜杠开头的
+因为映射器要用于几种不同的文件  (视图，css 和 js)
+所以要将它模块化
+
+var baseUrl ="";
+
+exports.map =- function(name){
+	return baseURI + name;
+	
+}
+
+你可能想给映射器添加功能，让它检查资产名称是不是以斜杠开头的
+映射器到处要用，尽可能快
+在QA工具链中静态分析代码，确保所有资产名称都是以斜杠开头的
+
+
+视图中的静态资源
+
+可以创建一个handlebars辅助函数，让它给出一个到静态资源的链接
+
+//设置handlebars视图引擎
+
+var handlebars = require("express3-handlebars").create({
+	defaultLayout:"main",
+	helpers:{
+		static:function(name){
+			return require("./lib/static.js").map(name);
+		}
+	}
+});
+
+添加了一个handlebars辅助函数static 让它调用静态资源映射器 
+接下来修改 main.layout 给商标图片用上新的辅助函数
+
+<header><img src={{static "/img/logo.png}} alt=Meadowlark Travel Logo></header>"
+
+
+css中的静态资源
+
+css预处理器 sass less stylus 
+
+LESS:
+
+使用grunt编译less生成css
+
+grunt-contrib-less
+
+
+
+从less/main.less生成 public/css/main.css 
+运行grunt 将它连入布局文件 
+
+虽然用了static函数，但不能解决生产css文件链接到/img/background.png的问题
+虽然确实给css文件本身创建了可重定位的链接
+
+框架已经搭建好了，让css文件中的url也是可重定位的
+首先先将静态映射器作为less的定制函数，
+可以在grunt中完成
+
+less:{
+	development:{
+		options:{
+			customFunctions:{
+				static:function(lessObject,name){
+					return url(require("./lib/static.js").map(name.value));
+				}
+			}
+		},
+		files:{
+			"public/css/main.css":"less/main.css"
+		}
+	}
+}
+
+给映射器的输出添加了标准的css url指定器和双引号
+确保css是有效的 
+现在只需要修改less文件 less/main.css
+body {
+	background-image:static("/img/background.png");
+}
+
+
+服务器端js中的静态资源
+
+在服务器端js中使用静态映射器
+
+想给应用程序添加一个复活节彩蛋 将商标换成某个照片
+在主程序文件中：
+
+var static = require("./lib/static.js").map;
+
+app.use(function(req,res,next){
+	var now =new Date();
+	res.locals.logoImage = now.getMonth() == 11&&now.getDate()==19?
+		static("/img/logo_bud_clark.png"):
+		static("/img/logo.png");
+		next();
+});
+
+然后在 views/layouts/main.handlebars
+<header> <img src="{{logoImage}}" alt="Meadowlark Travel Logo"><\/header>
+
+没有在视图中使用handlebars的static辅助函数
+因为已经在路由处理器中使用了，
+如果在这里再用，就是映射两次了 （不行）
+
+
+客户端js中的静态资源
+（必须用browserify才能在浏览器中使用node风格的模块）
+随着映射器变得越来越复杂，很快就会崩溃
+
+解决方案：
+在服务端映射 设定定制的js变量
+然后 views/layouts/main.handlebars
+
+<script>
+	var IMG_CART_EMPTY = '{{static "/img/shop/cart_empty.png"}}';
+	var IMG_CART_FULL = '{{static "/img/shop/cart_full.png"}}';
+<\/script>
+
+然后在jquery中使用这些变量
+
+$(document).on("meadowlark_cart_changed",function(){
+	$("header img.cartIcon").attr("src",cart.isEmpty()?
+			IMG_CART_EMPTY:IMG_CART_FULL);
+});
+
+如果要在客户端做很多图片切换 ，将所有图片变量放在一个对象中
+（本身就成了一个映射） 重写之前代码：
+
+<script>
+	var static = {
+		IMG_CART_EMPTY : '{{static "/img/shop/cart_empty.png"}}',
+		IMG_CART_FULL : '{{static "/img/shop/cart_full.png"}}'
+	};
+<\/script>
+
+
+提供静态资源
+
+知道如何创建一个框架来轻松修改静态资源的提供源
+
+什么是存储这些资产的最佳方式：
+先了解浏览器用来确定 如何 是否 缓存的响应头
+
+Expires/Cache-Control
+一个资源可以缓存的最长时间
+如果缓存一个月 在一个月里只要缓存中有这个资源 浏览器绝不会重新下载
+出于某些不可控的原因 浏览器可能会提前从缓存中移除图片 
+（用户自己清除了缓存 或 浏览器为了给用户访问更频繁的某些资源腾出空间清除了你的资源）
+只需要其中一个 支持expires的更多 所以优先选择Expires
+
+如果资源在缓存中还没过期 浏览器就绝对不会发送get请求 这会提升性能 特别在移动端上
+
+
+
+last-Modified/ETag
+提供了某种版本化 
+如果浏览器需要获取资源，在下载之前会检查标签 还会向服务器发起get请求
+如果响应头返回的值让浏览器觉得资源没变 他就不会继续下载那个文件
+last-modified可以指定资源最后一次修改的时间
+etag可以是任意字符串，一般是版本字符串或内容的哈希值
+
+
+
+在提供静态资源时，你应该用expires响应头 加上last-modified或etag值
+express内置的静态中间件会设定cache-control 但不会处理last-modified或etag
+所以只适合在开发环境中使用，对于生产环境不太好
+
+
+如果选择将静态资源放到cdn上 会帮你处理大部分细节
+
+如果不放到cdn上 但想比express内置的connect中间件更健壮的方案 
+考虑使用代理服务器 譬如 nginx 12章
+
+
+
+修改静态内容
+
+客户在缓存过期才能看到新内容 谷歌推荐缓存一个月
+但也不想告诉客户清除缓存 
+解决方案：
+指纹法() 只是在资源名上加上某种版本的信息，更新资产后，资源名称会变
+浏览器就知道需要下载这个资源
+例如：
+更新logo图片 meadowlark-logo.png 
+可以重命名为 meadowlark-logo-1.png 并将名称变化反应到html中
+浏览器就会强制下载
+
+
+如果有上千张图片 非常笨重 可以把映射器做的更好
+
+可能在数据库中保存所有数据资产的当前版本
+然后静态映射器可以查找资产名称
+
+最起码应该给css和js加上指纹 
+
+除了单个文件的指纹，另外一个流行的方案是资源打包
+
+将所有css打包到一个几乎不可能看懂的文件中 客户端js也是如此
+既然总会创建新文件，一般做那些指纹也更容易常见
+
+
+打包和缩小
+
+将css和js打包到一个文件中 
+1、减少http请求次数 
+2、减少了需要做指纹处理的资产数量
+
+
+在uglify中 将所有js放到一个 min.js文件中
+cssmin而言，将所有css放到一个css文件中，
+数组第二个元素 字符串前面的叹号说不要包含那些文件
+防止它循环包含它自己生产的文件
+然后缩小合并到 min.js文件中
+
+
+不要再html中引用单个文件，在布局文件中引用
+
+
+
+随着网站的增长，添加的css和js文件也会剧增
+一旦达到某种数量，打包和缩小会产生极大的性能提升
+
+hashres任务 将给打包和缩小的文件添加指纹
+以便在更新网站时可以马上看到这些变化，
+而不是等到缓存到期
+
+
+每次要修 views/layouts/main.handlebars中的引用
+解决：
+	在配置中 dest部分指定views/layouts/main.handlebars中的引用
+	会帮我们自动修改引用
+
+
+
+在开发模式中跳过打包和缩小
+
+打包和缩小之后不能做前端调试 需要在开发模式中禁用打包和缩小
+模块：connect-bundle
+
+
+
+关于第三方库
+
+QA
+
+grunt-lint-pattern
+
+
+对于大型项目可以使用静态资源映射技术
+对于小型项目：
+一开始就将静态资源放在cdn上，并一直在视图和css中使用完整url
+用某种程序分析工具linting确保没把静态资源放在本地
+可以用grunt-lint-pattern 搜索 不以(?:https?:)?//; 开头的链接
+防止不小心使用了本地资源
+
+
+17、在Express中实现MVC
+
+model 模型 纯粹的数据和逻辑 
+view 视图 展示给用户的界面
+controller 调度器 接受用户输入的信息
+
+mvvm 模型-视图-视图模型
+
+视图模型：将控制器也推到了视图中 模型的转化 可以保护 模型的转化
+
+在纯粹mvc中 它会引诱你对模型做只对视图来说有必要的转换和改进
+
+模型视图可以解救你 如果只需要一个只用来展示的数据视图，它就属于视图模型
+
+
+模型
+
+模型和持久层之间的关系
+理想情况下完全分开  普遍情况是 模型中的逻辑严重依赖于持久性 
+
+本书采用mongoose来定义模型，
+如果绑定到特定的持久化技术上让你不安，
+可以考虑使用原生的mongodb驱动，并将模型和持久层分开
+
+
+
+视图模型
+
+视图模型是保持模型抽象性的办法，同时能够提供有意义的数据
+
+有一个Customer模型，现在要创建一个视图显示客户信息，还有一些订单
+里面有不想显示的数据，并且要格式化不同的数据
+我们想要显示不在customer模型中的数据，比如客户的订单列表
+
+
+视图模型的概念对于保护模型的完整性和范围是必不可少的
+需要所有副本 firstName: customer.firstName
+
+
+underscore重写上面例子
+
+用mao方法给客户视图模型设定订单列表 
+创建了一个临时或匿名的视图模型，
+还有一种方式是创建一个“客户订单视图模型”对象 
+如果要多出使用视图模型 使用第二种方式
+
+
+控制器
+
+控制器负责用户交互，并根据用户交互选择恰当的视图来显示
+
+控制器和路由器之间唯一的区别就是 控制器一般会把相关功能归组
+
+客户控制器：负责客户信息的显示和编辑 包括客户下的订单
+
+
+controllers/customer.js中
+
+在控制器中，将路由管理跟功能分开了
+各自所选的视图不同，其他都是一样，
+可以合并到一个通用的方法中，进一步定制化
+
+ajaxupdate在前端用ajax做更新
+
+没有盲目根据请求体中传来的参数直接更新客户对象，容易遭受攻击
+要对参数进行校验，
+
+攻击者也可能构造一个ajax查询绕过你的前端校验，试图欺骗你的程序
+即便是冗余的也一定要在服务器端校验
+
+
+可以尝试写一个可以处理不同ui的控制
+
+
+多编程范式或模式
+
+
+18、安全
+
+https、认证机制、第三方认证
+
+利用已有认证模块自己编写认证系统
+
+https
+会对客户端和服务端之间传输的数据包进行加密
+让攻击者极难访问到所传输的信息
+
+https协议基于服务器上的 公钥证书 也叫ssl证书 目前标准格式X509
+证书背后的思想是由证书颁发机构CA发行证书
+
+CA让浏览器厂商能访问受信根证书 安装浏览器时就包含这些受信根证书 
+并靠它们建立起CA和浏览器之间的信任链 要用这个信任链必须使用由CA颁发的证书
+
+获取CA证书：自己生成、免费CA、商业CA
+
+
+生成自己的CA证书
+
+需要OpenSSL实现
+
+使用买免费的证书颁发机构：cacert
+
+购买证书
+symantec(verisign)\comodo\godaddy\globalsign
+
+客户支持
+避免链式根证书
+单域证书、多子域证书、多域证书、通配证书
+域证书、组织证书、扩展验证证书
+
+
+
+对express应用启用https
+
+创建服务器:
+http.createServer(app).listen(app.get("port"),function(){
+	console.log("Express started in"+ app.get("env")+"mode on port"+app.get("port")+".");
+});
+
+切换到https
+
+const https = require("https");
+const options = {
+	key:fs.readFileSync(__dirname+"/ssl/meadowlark.pem"),
+	cert:fs.readFileSync(__dirname+"/ssl/meadowlark.crt");
+};
+
+https.createServer(options,app).listen(app.get("port"),function(){
+	console.log("Express started in"+app.get("env")+"mode on port"+app.get("port")+".");
+
+
+});
+
+
+关于端口的说明
+默认http端口80 https默认443
+
+http和代理
+
+nginx代理服务器，由代理服务器将请求路由给你的应用程序
+
+
+如果用了代理服务器 客户端会跟代理服务器通信 不是直接连接到服务器上，
+代理服务器很可能通过常规的http跟你的应用通信 https止于代理服务器
+
+应用程序需要处理安全和非安全请求：
+1、简单地将代理配置成所有http请求都重定向到https上
+	强制所有跟应用程序通信都通过https
+2、将客户端 代理所用的通信协议发给你的服务器
+	常用的方法:X-Forwarded-Photo头  例如在nginx中：
+	proxy_set-header X-Forwarded-Photo $scheme;
+	然后在应用程序中检查用的是不是https协议
+
+	app.get("/",function(req,res){
+		//等同于if(req.secure)
+		if(req.headers["x-forwarded-photo"]==="https"){
+			res.send("line is secure");
+		} else {
+			res.send("you are insecure");
+		}
+	});
+
+	nginx中有一个专门针对http和https的服务器配置块
+	如果设置x-*头失败了 客户端就可以伪造请求头欺骗你的应用程序
+	即便链接不安全，也会让应用程序认为是安全的
+
+记得要用 app.enable("trust proxy")告诉express相信代理
+req.protocal req.secure req.ip 将指向客户端到代理的连接 不是应用
+
+
+跨站请求伪造CSRF
+
+利用用户相信浏览器在同一个会话中访问多个网站的事实
+在csrf攻击中，恶意站点的脚本会请求另外一个网站，
+如果在另一个网站上登陆过，恶意网站可以成功访问那个网站上的数据
+
+防范csrf：
+给浏览器传一个唯一的令牌
+
+当浏览器提交表单服务器会进行检查，以确保令牌是匹配的
+
+csurf中间件负责令牌的创建和验证 确保令牌包含到服务器的请求中
+
+添加令牌到 res.locals
+
+//放在cookie-parser 和 connect-session 引入之后
+app.use(require("csurf")());
+app.use(function(){
+	res.locals._csrfToken = req.csrfToken();
+	next();
+});
+
+csurf添加了csurfToken方法到请求对象上，不一定非要赋给 res.locals
+可以将 req.csurfToken() 直接传给需要它的视图 
+
+现在所有表单以及ajax调用都必须提供一个叫做 ——csrf的域 
+必须跟生成的令牌相匹配 
+<form action="/newletter" method="POST">
+	<input type="hidden" name="_csrf" value="{{_csrfToken}}">
+	<label>NAME:<\/label><input type="text" name="name"><br>
+	<label>EMAIL:<\/label><input type="email" name="email"><br>
+	<button type="submit">SUBMIT<\/button>
+<\/form>
+
+中间件csurf会处理剩下的工作
+如果body中的域没有有效的_csrf域，它会引发一个错误
+
+如果有一个api 不想让csurf干扰它，想限制其他网站访问这个api
+connect-rest 的 api key 功能 
+要防止csurf干扰你的中间件，就在引入csurf之前引入它
+
+
+认证
+
+认证与授权
+认证：验证用户身份
+授权：授予用户拥有哪些权利 可以修改访问或查看什么
+
+密码的问题
+
+第三方认证
+
+联合认证 或 代理认证
+安全断言标记语言SAML和openid有关联 
+代理认证一般是跟OAuth关联的
+
+优势：
+只要跟信任的第三方交互就可以
+减轻密码疲劳
+没有摩擦
+
+把用户存在数据库中
+
+在数据库中保存一份用户记录
+例如：
+用facebook做认证，只是证实了用户的身份
+需要保存针对这个用户的配置信息，
+必须将跟这个用户相关的信息保存在自己的数据库中
+
+让用户关联一个邮箱地址，
+/models/use.js
+
+
+认证与注册和用户体验
+
+第三方混乱 通过提供的邮箱可以找回原来注册的服务
+
+主认证服务 提供一个明显的第三方
+
+
+passport
+node/express的认证模块 
+基于可插拔认证策略的思想 （不想用第三方认证 也有本地策略）
+认证信息流 
+
+
+用第三方认证细节是  应用不会收到密码，完全是由第三方处理的
+
+整个过程要靠重定向完成,
+
+第三方只是告知你的浏览器让它重定向，而你的浏览器处于网络中，
+因此可以重定向到本地地址
+
+在本地网站登录 302/307重定向到第三方登陆页面 输入账号密码
+之后第三方网站验证登陆，在通过 302/307重定向到本地网站 获得授权 登陆
+
+第三方一般也不会存储密码 密码一般通过已经保存的加盐哈希进行验证
+这是对密码的单向转换
+只能从密码生成哈希码，不能从哈希码中恢复密码
+对哈希加盐可以对某些攻击进行额外的防护
+加盐哈希：
+http://blog.jobbole.com/61872/
+
+基于哈希加密账户系统中 注册和认证流程是：
+1、用户注册账号
+2、密码经过哈希加密保存在数据库，只要密码被写入磁盘，任何时候不允许明文
+3、当用户登录，数据库取出已经加密的密码，和哈希的用户输入进行对比
+4、如果哈希值相同，用户获得登入授权，否则会告知无效的登录信息
+5、每当有用户尝试登陆，以上两步都会重复
+在第4步  不要告知用户是账号或者密码错误
+
+如何破解哈希加密 
+字典攻击和暴力攻击
+
+加盐：通过密码加一段字串符 生成的哈希值 这个字符串称为盐值
+
+使用passport时，主要负责第四步
+详细第三方认证流程：
+
+1、本地网站登录页面 点击facebook 请求 本地网站构造auth请求 服务重定向到facebook三方登陆网站
+
+2、输入凭证并许可访问，请求，构造auth响应，服务重定向到本地网站
+
+3、证实auth响应 重定向到account 证实授权并处理器account请求，显示界面
+
+浏览器做三件事情：
+发起http请求
+显示响应
+执行重定向（发起另一个请求和显示另一个响应所必需的，然后可能是另一次重定向）
+
+
+实现细节之前，考虑下面每一步：
+
+登陆页:
+本地认证：用户名和密码域
+	如果没有登陆就访问一个需要认证的url 需要重定向到登陆页页面
+
+构建认证请求：
+构造一个发送给第三方的请求（通过重定向）
+请求细节专门针对这个认证策略 passport和策略插件完成
+认证请求免受中间人攻击，安全起见 时间很短
+
+证实认证响应：
+
+如果用户授权，会从三方获取一个有效认证响应 即用户身份的证据
+复杂校验细节还是有passport和策略插件处理
+如果认证响应用户没有授权，会重定向到一个合适的页面 一般是登陆页面
+
+在认证响应中会有用户在第三方的唯一ID 以及在第二步中请求的所有细节，
+要完成第四步必须记住用户是授权过的，
+一般是设定一个不包含用户id的会话变量 表明这个会话已经授权过了
+也可以用cookie
+
+证实授权：
+
+第三步中会话保存了用户的id，有了id可以从数据库中获取用户对象，
+其中包含用户授权信息，
+没必要每个请求都让第三方 认证 也不需要passport
+我们有包含认证规则的User对象，如果没有这个对象表明请求没有授权
+
+
+
+构建passport
+facebook 通过facebook账号注册一个facebook应用管理
+配置好应用后，需要它的唯一id和密钥
+
+安装passport和facebook认证策略
+
+
+
+const User = require("../models/user.js"),
+  passport = require("passport"),
+  FacebookStrategy = require("facebook-passport").Strategy;
+
+passport.serializeUser(function(user,done){
+	done(null,user._id);
+});
+
+passport.deserializeUser(function(id,none){
+	User.findById(id,function(err,user){
+		if(err || !user){
+			return done(err,null);
+		}
+		done(null,user);
+	});
+});
+//passport通过serializeUser和deserializeUser将请求映射到认证用户上，
+//允许你使用任何存储方法
+//只在会话存了一个用户id，当有需要的时候，会从数据库中查找这个id 得到user模型的实例
+
+
+
+
+
+passport通过serializeUser和deserializeUser将请求映射到认证用户上，
+允许你使用任何存储方法
+只在会话存了一个用户id，当有需要的时候，会从数据库中查找这个id 得到user模型的实例
+
+实现了这两个方法，只要有活跃的会话并且用户成功通过认证
+req.session.passport.user 就会对应user模型的实例
+
+选择输入什么
+启用passport功能 ：
+需要初始化passport并注册处理认证
+从第三方认证服务重定向到回调的路由
+
+
+
+在主程序文件中 可能想要选择把passport连接到中间件链条的时机
+
+不准备让模块输出函数做这些事，而是让它返回一个函数，
+这个函数返回的对象有我们需要的方法
+
+一开始为什么不只是返回一个对象？
+因为需要植入一下配置值
+此外需要将passport中间件连入我们的应用程序，函数比较容易传入express应用程序对象中 
+
+
+现在来处理init方法
+
+init: function(){
+	const env = app.get("env");
+	const config = options.providers;
+
+	passport.use(new FacebookStrategy({
+		clientID: config.facebook[env].appid,
+		clientSecret: config.facebook[env].appSecret,
+		callbackURL: "/auth/facebook/callback"
+	},function(accessToken,refreshToken,profile,done){
+		const authId = "facebook"+profile.id;
+		User.findOne({authId:authId},function(err,user){
+			if(err){
+				return done(null,user);
+			}
+			if(user){
+				return (null,user);
+			}
+			user = new User({
+				authId: authId,
+				name: profile.displayName,
+				created: Date.now(),
+				role: "customer"
+			});
+			user.save(function(){
+				if(err){
+					return done(err,null);
+				}
+				done(null,err);
+			});
+		});
+	}));
+	app.use(passport.initialize());
+	app.use(passport.session());
+}
+
+在函数中传入FacebookStrategy实例部分，
+当调用这个函数时， 用户成功通过认证后，
+参数profile中有facebook用户的信息
+最重要的是包含facebookid
+要用这个把facebook账号和user模型关联起来
+
+在属性authid前加了前缀facebook作为它的命名空间
+防止跟google twitter命名冲突
+（还可以借此检查用户模型，看用户的认证方法）
+
+如果数据库已经有这个id 直接返回它
+（这时会调用serializeUser 由它吧mongodb id放到会话中）
+如果没有返回用户记录，会创建一个新user模型并将它存到数据库中
+
+最后创建registerRoutes方法 
+
+registerRoutes: function(){
+	//注册facebook路由
+	app.get("/auth/facebook",function(req,res,next){
+		passport.authenicate("facebook",{
+			callbackURL: "/auth/facebook/callback?redirect="+encodeURIComponent(req.query.redirect);
+		})(req,res,next);
+	});
+	app.get("/auth/facebook/callback",passport.authenticate("facebook",
+		{ failureRedirect: options.failureRedirect },
+		function(req,res){
+			//认证成功才能到这里
+			res.redirect(303,req.query.redirect || options.successRedirect);
+		}
+	));
+};
+
+现在有路径 /auth/facebook  
+访问这个路径的用户会自动重定向奥facebook认证界面上
+这是由 passport.authenticate("facebook") 完成的 
+
+在这里覆盖了默认的回调url 因为我们像包含我们来自哪里的信息
+
+我们让浏览器重定向到了facebook做认证 也要有办法返回
+一旦用户在facebook上做了授权 浏览器就会 转到你的网站上
+
+到 /auth/facebook/callback 带着可选的redirect查询字符串 表明用户最初从哪来
+ 在查询字符串上还有将要由passport证实的认证令牌 
+ 如果passport未能证实 浏览器会被重定向到options.failureRedirect
+ 如果证实成功，passport会调用 next() 回到你的应用中
+ 注意中间件是如何链到 /auth/facebook/callback的处理器中的
+ 先调用passport.authenticate
+ 如果它调用next()   控制器又交给了你的函数 如果没有指定redirect查询字符串参数，
+ 就会重定向到原始地址 或者 options.successRedirect
+
+省略redirect查询字符串参数能简化认证路由 
+如果你只有一个url需要认证 
+
+这个过程passport将用户（mongodb数据库中的用户id）存到会话中
+（浏览器被重定向了，这是不同的http请求，没有会话中的信息）
+根本没办法知道用户已经通过认证了
+用户认证成功后，req.session.passport.user就设定好了 后续的请求也就知道这个用户已经通过认证了
+
+
+
+"/account" 处理器如何检查以确保用户是通过认证的
+（这个路由处理器将会出现在主程序文件中 或者 在单独的路由中 不会在auth.js中）
+
+app.get("/account",function(req,res){
+	if(!req.session.passport.user){
+		return res.redirect(303,"/unauthorized");
+	}
+	res.render("account");
+});
+
+现在只有认证用户才能见到账号页面，其他所有人都会被转到 未经授权 页面
+
+
+基于角色的授权
+
+在单个路由中 可以有多个函数，按序调用
+
+创建一个customerOnly函数 只允许客户访问：
+
+function customerOnly(req,res){
+	const use = req.session.passport.user;
+	if(user && req.role === "customer"){
+		return next();
+	}
+	res.redirect(303,"/unauthorized");
+}
+
+在创建一个employOnly函数 
+非员工访问/sales 页面 让他们看到404页面 
+
+function employOnly(req,res,next){
+	const user = req.session.passport.user;
+	if(user || req.role==="employ"){
+		return next();
+	}
+	next("route");
+}
+
+next("route") 不是执行路由中的next处理器 它会跳过这个路由
+如果接下来没有处理account路由，最终就是404处理器
+
+
+客户路由
+
+app.get("/account",function(req,res){
+	res.render("account");
+});
+app.get("/account/order-history",customerOnly,function(req,res){
+	res.render("account/order-history");
+});
+app.get("/account/email-prefs",customerOnly,function(req,res){
+	res.render("account/email-prefs");
+});
+
+员工路由
+
+app.get("/sales",employOnly,function(req,res){
+	res.render("sales");
+});
+
+
+允许多个角色访问 
+function allow(roles){
+	const user = req.ression.passport.user;
+	if(user &&  roles.split(",").indexOf(user.role)!==-1){
+		return next();
+	}
+	res.redirect(303,"/unauthorized");
+}
+
+app.get("/account",allow("customer,employee"),function(req,res){
+	res.render("account");
+});
+
+// 添加更多认证提供者
+
+passport.use(new GooleStrategy({
+	returnURL: 'https:/\/'+ host + "/auth/goole/return",
+	realm: "https:/\/" + host + "/"
+},function(identifier,profile,done){
+	const authId = "google" + identifier;
+	User.findOne({authId:authId},function(err,user){
+		if(err){
+			return done(err,null);
+		}
+		if(user){
+			return done(null,user);
+		}
+		user = new User({
+			authId: authId,
+			name: profile.displayName,
+			created: Date.now(),
+			role: "customer"
+		});
+		user.save(function(err){
+			if(err){
+				return done(err,null);
+			}
+			done(null,user);
+		});
+	});
+}));
+
+
+
+19、集成第三方API
+
+社交媒体、地理定位
+
+
+社交媒体插件和站点性能
+
+大多数社交媒体集成都是前端事务 ，在页面中引用恰当的js文件
+
+可能因为额外的http请求占用了几倍加载页面的时间
+facebook中的赞或推文 利用了浏览器中的cookie 以用户的名义提交内容
+
+引入恰当的第三方库是最佳选择 即便是影响了页面性能
+
+
+搜索推文
+在后端做 可以缓存它还可以提升性能 
+在后端搜索还可以将一些推文拉黑 这在前端很难实现
+
+
+将twitter的代码放到模块lib/twitter.js中保存
+
+将模块输出一个函数传到配置对象的调用者中
+
+函数返回一个包含方法的对象，我们也可以向模块中添加功能
+
+
+const twitter = require("./lib/twitter")({
+	consumerKey: credentials.twitter.consumerKey,
+	consumerSecret: credentials.twitter.consumerSecret
+});
+
+twitter.search("#meadowlarktravel",10,function(result){
+	//推文会在result.statuses中
+});
+
+credentials.js放consumerKey 和 consumerSecret的twitter的属性
+
+在search方法之前 必须提供twitter的认证方法：
+基于消费者键和消费者密码用https请求一个访问令牌
+只需要做一次：
+目前twitter不会让访问令牌过期，可以手工失效
+我们不想每次都请求访问令牌，要将它们缓存起来以备后用
+
+
+
+构造模块的方式可以创建私有功能，让调用者无法访问
+
+调用者只能访问module.exports 
+返回一个函数 调用者只能访问这个函数
+调用这个函数得到一个对象 调用者只能访问这个对象的属性
+
+创建一个变量accessToken来缓存访问令牌 
+还有一个函数getAccessToken 用来获取访问令牌 
+第一次调用这个函数 它会向twitter api发起一个请求获取访问令牌
+后续调用直接返回accessToken的值：
+
+
+const https = require("https");
+
+module.exports = function(twitterOptions){
+	//这个变量在模块外不可见
+	const accessToken;
+
+	//这个函数在模块外不可见
+	function getAccessToken(cb){
+		if(accessToken){
+			return cb(accessToken);
+		}
+		//todo 获取访问令牌 
+	}
+	return {
+		search: function(query,count,cb){
+			//to do
+		}
+	};
+};
+
+getAccessToken 可能要异步调用twitter api，
+必须提供一个回调函数，
+等accessToken值有效时调用 
+基本结构已经做好 接下来实现 getAccessToken:
+
+function getAccessToken(cb){
+	if(accessToken){
+		return cb(accessToken);
+	}
+	const bearerToken = Buffer(
+		encodeURIComponent(twitterOptions.consumerKey)+":"+
+		encodeURIComponent(twitterOptions.consumerSecret)
+		).toString("base64");
+	const options = {
+		hostname: "api.twitter.com",
+		port: 443,
+		method: "POST",
+		path: "/oauth2/token?grant_type=client_credentials",
+		header: {
+			"Authorization":"Basic"+bearerToken,
+		}
+	};
+	https.request(options,function(res){
+		const data = "";
+		res.on("data",function(chunk){
+			data += chunk;
+		});
+		res.on("end",function(){
+			const auth = JSON.parse(data);
+			if(auth.token_type!=="bearer"){
+				console.log("twitter auth failed");
+				return;
+			}
+			accessToken = auth.access_token;
+			cb(accessToken);
+		});
+	}).end();
+}
+
+整个过程 先基于消费者键和消费者密码组合构造一个base64编码的不记名令牌（bearer token）
+这个令牌构造好之后，调用/oauth2/tokenAPI 
+在Authorization请求头重包含不记名令牌，请求获取访问令牌，
+这里必须用https 如果试图用http，密钥就是未经加密传输，api会搁置你的请求
+
+
+得到api完整响应后，监听响应流的end事件，解析json
+确保令牌类型是不记名，进展顺利
+我们缓存访问令牌，然后调用回调函数
+
+现在有了获取访问令牌的机制 可以实现api调用了 
+实现search方法：
+
+search:function(query,count,cb){
+	getAccessToken(function(accessToken){
+		const options = {
+			hostname: "api.twitter.com",
+			port: 443,
+			method: "POST",
+			path: "/1.1/search/tweets.json?q="+
+					encodeURIComponent(query)+
+					"&count="+(count || 10),
+			headers: {
+				"Authorization": "Bearer"+accessToken
+			},
+		};
+		https.request(options,function(res){
+			const data = "";
+			res.on("data",function(chunk){
+				data+=chunk;
+			});
+			res.on("end",function(){
+				cb(JSON.parse(data));
+			})
+		}).end();
+	});
+};
+
+
+
+
+渲染推文
+引入其功能元素显示推文
+
+对于更加复杂的api应用 还需要从后台访问rest api 最终很可能要结合前端脚本使用rest api
+
+用rest api搜索推文 用twitter小工具库显示他们，
+不想碰到使用限制或者拖慢服务器 会把推文和显示它们的html缓存15分钟
+
+
+修改twitter库引入embed方法
+得到显示推文的html
+确保在文件顶部放了
+const querystring = require("query string");
+
+embed: function(statusId,options,cb){
+	if(typeof options === "function"){
+		cb = options;
+		options = {};
+	}
+	options.id = statusId;
+	getAccessToken(function(accessToken){
+		const requestOptions = {
+			hostname: "api.twitter.com",
+			port: 443,
+			method: "GET",
+			path: "/1.1/statuses/oembed.json?"+
+					querystring.stringify(options),
+			headers: {
+				"Authorization":"Bearer"+accessToken
+			}
+		};
+		https.request(requestOptions,function(res){
+			const data = "";
+			res.on("data",function(chunk){
+				data+=chunk;
+			});
+			res.on("end",function(){
+				cb(JSON.parse(data));
+			});
+		}).end();
+	});
+}
+
+现在推文的搜索和缓存都准备好了，在主应用程序文件中创建一个对象存储缓存：
+
+cosnt topTweets = {
+	count: 10,
+	lastRefreshed: 0,
+	refreshInterval: 15*60*1000,
+	tweets: []
+};
+
+创建一个函数获取排在前面的推文 如果已经缓存了且还未过期，
+可以直接返回 topTweets.tweets 否则进行搜索
+
+重复调用embed得到嵌入的html 
+
+新概念：promise 
+管理异步功能 异步函数不会立即返回
+
+创建一个promise 异步部分一完成就骂声resolve 
+用到Q promise库
+
+将const Q = require("q");放到主程序文件顶部
+
+function getTopTweets(cb){
+	if(Date.now()<topTweets.lastRefreshed + topTweets.refreshInterval){
+		return cb(topTweets.tweets);
+	}
+	twitter.search("meadowlarktravel",topTweets.count,function(result){
+		const fortmattedTweets = [];
+		const promises = [];
+		cosnt embedOpts = { omit_script:1};
+		result.statuses.forEach(function(status){
+			const deferred = Q.defer();
+			twitter.embed(status.id_str,embedOpts,function(embed){
+				formattedTweets.push(embed.html);
+				deferred.resolve();
+			});
+			promises.push(deferred.promise);
+		});
+		Q.all(promises).then(function(){
+			topTweets.lastRefreshed = Date.now();
+			cb(topTweets.tweets = formattedTweets);
+		});
+	});
+}
+
+
+分析代码：
+1		var promises = [];
+2		things.forEach(function(thing){
+3			const deferred = Q.defer();
+4			api.async(function(thing){
+
+15				console.log(thing);//这两步异步执行
+16				deferred.resolve();//
+
+			});
+5			promises.push(deferred);
+		});
+6		Q.all(promises).then(function(){
+
+23			console.log("all done"); //在所有promise resolve后异步执行
+		});
+7		console.log("other stuff...");
+
+第1步创建了数组存放promise 
+第2步开始循环遍历集合中的东西
+	即便函数放在foreach中 它也不是异步的
+	对集合中每个元素同步调用函数 
+第3步在函数内部
+第4步调用 api.async 表示一个异步工作的方法
+	当它完成时，会调用你传入的回调函数
+
+console.log(num) 不会是第4步 异步函数还没机会完成并调用回调
+
+第5行先执行 只是将刚刚创建的promise添加到数组中，
+然后再次开始（第6步和第3步是同一行） 
+迭代完成后，尽管things中还有很多东西 forEach循环结束
+
+第6步执行 
+意思是： 所有promise都resolve后执行这个函数，
+本质上这是另一个异步函数
+但要等到我们对 api.async的三次调用都完成后才会执行，
+
+第7步执行，
+向控制台输出某些东西
+即便代码中 console.log(num) 在 console.log(other stuff)前面
+也是other stuff先输出
+
+第13步之后，other stuff出现，
+在某一点上 没什么事情要做了，js引擎会找些别的事情做，
+所以它去执行一个异步函数
+做完后调用回调函数就到了15步和16步
+这两步还会再重复
+直到things中没有需要处理的元素
+
+
+等所有promise都resolve后，那时候就可以到23步了
+
+
+
+地理编码：
+将具体的地址转换成地理坐标的过程
+
+应用程序准备做地理位置计算或显示地图 就需要地理坐标
+
+
+DMS度分秒表示地理坐标
+地理编码api和地图服务使用单浮点数表示经纬度
+
+
+谷歌地理编码；
+/lib/geocode.js
+
+
+有了一个连接谷歌api对地址做地理编码的函数
+如果找不到地址会返回一个错误，
+谷歌api可以返回多个地址
+
+
+使用限制
+
+谷歌和必应对地理编码api的使用有限制，防止出现滥用的情况
+但限制非常高
+
+如果使用谷歌的服务队数据做地理编码 
+就不能转而将那些信息显示在必应地图上
+否则是违反服务协议
+
+
+对你的数据做地理编码
+考虑两件事情：
+初始化时数据库中可能已经有些代理商了 如果要批量处理这些代理商的地理编码 、将来新增代理商时，或 代理商地址发生变化怎么办？
+
+处理方法：
+首先是使用限制
+如果数量超过api限制的请求数 必须把初始化地理编码工作分散到几天里完成 避免触及谷歌api限制
+
+
+填充数据库，先忽略geocodedAddress lat lng域
+填充好数据库，可以着手处理地理编码的工作
+
+
+采取跟twitter缓存类似的办法 只缓存10条推文 将缓存放到内存里，
+代理商信息可能打得到，为了提高速度仍然要缓存它，但不能放在内存里
+
+在客户端很快的方法，用这些数据创建JSON文件：
+
+创建缓存
+const dealerCache = {
+	lastRefreshed: 0,
+	refreshInterval: 60*60*1000,
+	jsonUrl: "/dealer.json",
+	geocodeLimit: 2000,
+	geocodeCount: 0,
+	geocodeBegin: 0
+};
+
+dealerCache.jsonFile = __dirname+"/public"+dealerCache.jsonUrl;
+
+先创建一个辅助函数，
+对给定dealer模型做地理编码，并将结果保存到数据库中
+如果当前代理商的地址跟最近一个地理编码匹配，
+则不做任何事直接返回
+如果代理商的坐标是最新的，这个方法就很快：
+
+
+const geocodeDealer(dealer){
+	const addr = dealer.getAddress(" ");
+	if(addr===dealer.geocodeAddress){
+		return;
+	}
+	if(dealerCache.geocodeCount >= dealerCache.geocodeLimit){
+		//自上次做完地理编码以及过去24小时了么
+		if(Date.now() > dealerCache.geocodeCount + 24*60*60*1000){
+			dealerCache.geocodeBegin = Date.now();
+			dealerCache.geocodeCount = 0;
+		} else {
+			//现在还不能做地理编码处理
+			//已经达到使用限制
+			return;
+		}
+	}
+
+	geocode(addr,function(err,coords){
+		if(err){
+			return console.log("Geocoding failure for"+ addr);
+		}
+		dealer.lat = coords.lat;
+		dealer.lng = coords.lng;
+		dealer.save();
+	})
+}
+
+
+可以将geocodeDealer作为dealer模型中的方法，
+但因为这个方法依赖于地理编码库
+最好把它作为一个单独的函数
+
+
+创建一个函数刷新代理商缓存
+
+dealerCache.refresh = function(cb){
+	if(Date.now() > dealerCache.lastRefreshed + dealerCache.refreshInterval){
+		//刷新缓存
+		Dealer.find({active: true},function(err,dealers){
+			if(err){
+				return console.log("error fetching dealers:"+err);
+			}
+			//如果坐标是最新的 geocodeDealer 什么也不做
+			dealers.forEach(geocodeDealers);
+
+			//将所有代理商写到缓存的JSON文件中
+			fs.writeFileSync(dealerCache.jsonFile,JSON.stringify(dealers));
+
+			//搞定--调用回调
+			cb();
+		});
+	}
+};
+
+
+确定一个办法来及时更新缓存的数据 可以用setInterval
+如果很多代理商发生了变化 有可能要花一个多小时来刷新缓存
+
+刷新完成后用settimeout等一个小时再刷新缓存
+
+function refreshDealerCacheForever(){
+	dealerCache.refresh(function(){
+		//刷新间隔结束后调用自己
+		setTimeout(refreshDealerCacheForever,dealerCache.refreshInterval);
+	});
+}
+我们没把refreshDealerCacheForever 做成dealerCache的方法
+
+js的this对象很怪异 调用函数的时候 this不会绑定到调用对象的上下文上去
+
+
+第一次启动应用缓存不存在
+先创建一个空的 然后启动 dealerCache.refreshForever:
+
+//如果缓存还不存在 则创建它， 以防出现404错误
+
+if(!fs.existsSync(dealerCache.jsonFile)){
+	fs.writeFileSync(JSON.stringify([]));
+}
+
+//开始刷新缓存
+refreshDealerCacheForever();
+
+
+只有所有代理商数据都从数据库返回时才会更新缓存
+任何需要地理编码的代理商都是如此
+在最坏的情况下，
+如果添加或更新了代理商，
+被更新的信息出现在网站所需时间是
+刷新间隔加上地理编码所需的时间
+
+
+
+显示地图
+
+想在客户端使用handlebars，必须用反斜杠来转义大括号
+防止handlebars试图在后台渲染这个模板
+jquery的辅助函数 getJSON 里面（获取/dealers.json缓存的地方）
+ 在地图上为每个代理商创建一个标记
+ 所有标记创建完后，用handlerbars更新代理商列表
+
+
+提升客户端性能
+
+只适用于少量代理商情况 如果上百个标记或更多
+
+目前我们是解析JSON并在其上循环迭代，可跳过那一步
+
+function dealersToGoogleMaps(dealers){
+	const js = "function addMarkers(map){\n"+
+				"var markers = [];\n"+
+				"var Marker = google.maps.Marker;\n"+
+				"var Lating = google.maps.Lating;\n";
+	dealers.forEach(function(d){
+		const name = d.name.replace(/'/,'\\\'').replace(/\\/,'\\\\');
+		js += "markers.push(new Marker({\n"+
+			"\tpositon: new Lating("+
+			d.lat + ","+d.lng+"),\n"+
+			"/tmp: map,\n"+
+			"\ttitle: \'"+name +"\',\n"+
+			")}));\n";
+	});
+	js += "}";
+	return js;
+};
+
+将这段js写到一个文件中/dealers-googleMapMarkers.js
+并放到script标签里，
+地图初始化一完成 就可以调用addMarkers(map)
+所有标记都加上
+不足之处跟谷歌地图绑定了 如果需要切换到必应
+需要重新写代码
+
+如果需要速度提升到最快 这种办法可行
+产生字符串要小心
+注意字符分隔符 做转义处理 
+确保有反斜杠做了转义处理
+
+
+天气数据
+
+设置账号得到一个api键
+见meadowlark文件中 getWeatherData函数处理
+
+
+
+http.request 
+http.request和解析JSON
+
+
+20、调试
+
+调试的首要原则：
+
+排除过程：
+注释掉或禁用代码块
+编写能被单元测试覆盖的代码 单元测试本身提供了一个用于排除的框架
+分析网络数据流 确定问题是出在客户端还是服务器端
+测试系统中跟第一个相似但不同的部分
+使用之前能用的输入，一点一点修改输入 直到问题呈现
+版本控制逐次回退 直到问题消失
+“模拟”功能以排除复杂子系统的干扰
+
+利用好REPL和控制台
+console.log
+
+利用node内置的调试器
+
+node探查器
+node-inspector
+
+调试express
+express应用创建 
+	lib/express.js createApplication()
+express应用初始化
+	lib/application.js app.defaultConfiguration
+添加中间件 lib/application.js app.use
+
+渲染视图 lib/application.js app.render
+	
+请求扩展 lib/request.js
+
+发送响应 lib/response.js res.send
+
+响应扩展 lib/response.js
+
+静态中间件 
+	node_modules/serve-static/index.js 
+	function staticMiddlewar(){}
+
+
+比较重要的包的位置
+
+会话中间件：
+	node_modules/express-session/index.js
+	function session(){}
+日志中间件：
+	node_modules/morgan/index.js 
+	function logger(){}
+url编码请求体解析：
+	node_modules/body-parse/index.js 
+	function() urlencoded(){}
+
+
+21、正式启用
+
+域名注册和托管服务
+
+域名系统负责将域名映射到ip地址
+
+安全：
+顶级域名 .com .cn .net 
+子域名 www 
+
+域名服务器：
+映射方式：
+1、用户访问网址
+2、浏览器发送请求到用户计算机的网络系统
+3、用户计算机的网络系统中有网络接入商给出的互联网ip和
+	dns服务器，会要求dns服务器解析网址
+4、dns服务器知道网址由域名服务器处理
+	要求域名服务器给出网址的ip地址
+5、服务器收到请求，认出网址是活跃账号 返回与之关联的ip地址
+
+
+直接将ip地址直接注册到dns服务器上
+必须有一个静态ip地址
+
+想把域名直接映射到网站上（跳过域名服务器）
+可以添加A记录或CNAME 
+A记录将域名直接映射到一个ip地址 
+而CNAME将域名映射到另一个域名商
+CNAME缺乏灵活性 A记录更受欢迎
+
+
+域名映射一般是积极缓存
+
+如果要在准确时间准确启用 不应该依赖dns改动
+而是让你的服务器转到 马上推出 站点或页面
+然后在真正切换之前先修改dns 
+这样在预定的时刻 可以将服务器切到正式启用的站点，
+当用户访问时，不管在哪里 都可以看到变化
+
+
+
+托管
+1、云托管
+2、XaaS  
+SaaS : 软件即服务
+PaaS ：平台即服务
+IaaS ：架构即服务
+3、大型托管
+4、精品托管
+
+
+部署
+基于git的部署
+或mercurial、subversion部署
+
+将开发存储库和部署存储库同步起来
+
+1、git部署
+创建针对部署的分支
+production
+staging
+一种比较流行的是 master->staging->production
+一旦master上的某些修改可以启用 就可以合并到staging中
+一旦它们在临时服务器上可以用 就可以合并到production中
+
+更好的方式：
+把master合并到staging 
+当你准备好启用这些修改，把master合并到production
+staging和production关联就少了
+也可以开更多staging分支来试验不同的功能 然后在正式启用
+只有那些被证实可以放到生产环境中时，在合并到production
+
+回滚变化：
+git revert逆向提交取消前面的提交
+或者
+git reset --hard <old commit id>
+git push origin production --force
+
+部署到azure
+
+基于git的手工部署
+
+更新production分支时，必须到每台服务器上运行 
+git pull --ff-only  然后运行npm install
+
+亚马逊上用elastic beanstalk部署
+
+22、维护
+
+维护的原则
+使用源码控制系统给
+使用问题追踪系统
+良好的卫生习惯：版本控制、测试、代码审查、问题追踪
+不要拖延
+做常规的QA检查：
+	www.google.com/webmasters 谷歌站长工具
+	www.bing.com/toolbox/webmaster bing站长工具
+
+监测分析
